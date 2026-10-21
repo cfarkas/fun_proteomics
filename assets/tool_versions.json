@@ -1,0 +1,22 @@
+{
+  "FragPipe": {
+    "version": "24.0",
+    "archive_sha256": "6a7ad80b81d7e93e8fa194c1d22228ee35ea9a2ae8ba8dc6964bb26ea4385137",
+    "url": "https://github.com/Nesvilab/FragPipe/releases/download/24.0/FragPipe-24.0-linux.zip"
+  },
+  "MSFragger": {
+    "version": "4.4.1",
+    "archive_sha256": "d5268024c10f29317a20c4b5f42a2ec142dc282c0e8fc733ca286ff76537644a",
+    "registration": "https://msfragger-upgrader.nesvilab.org/upgrader/"
+  },
+  "IonQuant": {
+    "version": "1.11.20",
+    "archive_sha256": "1ec8083df0e98abe4c5c6f6baed8a05ef5e0474f74d33d1c3049716128eb37ba",
+    "registration": "https://msfragger-upgrader.nesvilab.org/ionquant/"
+  },
+  "diaTracer": {
+    "version": "2.2.1",
+    "archive_sha256": "1ba66e78674d1d8ff2ec8dee551b9da43844515fc314916ccaf7a1a0f5170b8a",
+    "registration": "https://msfragger-upgrader.nesvilab.org/diatracer/"
+  }
+}

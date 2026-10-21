@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fun_proteomics"
+version = "0.5.0"
+description = "Portable PASEF proteomics workflows, verified continuation, and protein/gene differential analysis"
+readme = "PACKAGE_README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE", "LICENSE_NOTES.md", "modules/diapasef/NOTICE.md"]
+authors = [{name = "cfarkas"}]
+keywords = ["proteomics", "PASEF", "DIA", "Nextflow", "differential-abundance"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+  "numpy>=1.26,<3", "pandas>=2.2,<3", "matplotlib>=3.8,<4",
+  "pyarrow>=19,<26", "openpyxl>=3.1,<4", "jsonschema>=4.23,<5",
+]
+
+[project.urls]
+Homepage = "https://github.com/cfarkas/fun_proteomics"
+Repository = "https://github.com/cfarkas/fun_proteomics"
+Issues = "https://github.com/cfarkas/fun_proteomics/issues"
+
+[project.scripts]
+fun_proteomics = "fun_proteomics.cli:main"
+fun-proteomics = "fun_proteomics.cli:main"
+
+[project.optional-dependencies]
+build = ["build>=1.2", "twine>=6"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["fun_proteomics*"]
+
+[tool.setuptools.cmdclass]
+build_py = "fun_proteomics._build.BuildPy"
+sdist = "fun_proteomics._build.SourceDistribution"

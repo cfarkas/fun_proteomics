@@ -1,0 +1,214 @@
+PASEF Proteomics — Nextflow pipeline
+
+USAGE
+  nextflow run main.nf [pipeline options] [Nextflow options]
+  nextflow run main.nf --help
+
+INTERACTIVE SETUP
+  nextflow run main.nf --interactively
+  Prepares missing runtime/R dependencies, then opens your browser automatically.
+  The first launch needs internet. Select input folders, assign conditions and
+  choose/create the output directory, then confirm DDA-PASEF or DIA-PASEF.
+  DIA confirmation selects global label-free DIA-NN identification/quantification.
+  Save draft preserves incomplete setup and sample names without starting analysis.
+  Use Run / Stop and the live terminal when setup is ready.
+  No search starts until you click Run analysis. Runs and logs survive interface closure.
+  Reopen the interface to reconnect; use Stop run in the browser to stop analysis.
+  If this project's interface is already running, reopens its current settings.
+
+PIPELINE OPTIONS (two dashes)
+  --interactively              Open the local configuration interface, without searching.
+  --ui_port N                  Interface port, default 8765 (range 1024–65535).
+  --help                       Print this help; do not run any tasks.
+  --config_file FILE           Study JSON (default: project/config.local.json).
+  --config FILE                Alias for --config_file; do not supply both.
+  --outdir DIR                 Override JSON outdir; relative to launch directory.
+  --threads N                  CPUs/threads per search-engine task, integer 1–detected available CPUs.
+  --cpus N                     Alias for --threads; do not supply both.
+  --memory SIZE                RAM per search-engine task, integer 4–currently available RAM in GiB.
+                               Examples: --memory 64 or --memory '64 GB'.
+                               Threads/RAM default to JSON resources.cpus and
+                               resources.memory_gib (DDA fallback: 32 / 128; DIA: 32 / 96).
+                               These are allocations; some tool phases use
+                               fewer threads. They are not an OS memory limit.
+  --verbosity N                Console detail, one integer 1–4 (default: 3):
+                                 1  Brief run summary; warnings/errors; final status.
+                                 2  Execution plan, task start/end, quiet heartbeats.
+                                 3  Level 2 plus tool stages/progress (default).
+                                 4  Level 3 plus full raw logs and task commands.
+                               All levels retain complete task logs on disk.
+                               Native Nextflow task/cache messages remain visible.
+  --verbose true|false         Legacy alias: true=4, false=1. Do not combine with
+                               --verbosity. Select ONE verbosity value per launch.
+  --continue                   Reuse this study's completed work, including verified FragPipe searches.
+                               Missing or changed steps run; no complete search is assumed from filenames alone.
+  --validate_only              Audit inputs, tools and database, without searching.
+  --dry_run                    Generate/validate FragPipe commands; no count tables.
+                               Mutually exclusive with --validate_only.
+  --runtime_dir DIR            Installed runtime root (default: PROTEOMICS_RUNTIME_DIR
+                               environment variable, otherwise project/.runtime).
+
+NEXTFLOW OPTIONS (one dash; handled by Nextflow itself)
+  -resume [RUN_NAME|SESSION_ID] Reuse matching completed tasks; omitted ID = last run.
+  -work-dir DIR                Work/cache files (default here: work/).
+  -ansi-log true|false         Terminal display: false = plain lines, true = animated.
+                               NXF_ANSI_LOG sets the default when the flag is omitted.
+                               Native nextflow commands otherwise use Nextflow
+                               terminal detection. Browser-run logs always use
+                               plain output, so --interactively needs no flag.
+  -name NAME                  Name this execution for later -resume NAME.
+  -params-file FILE            JSON/YAML pipeline options; distinct from study JSON.
+  -c FILE                     Additional Nextflow config (e.g. executor settings).
+  -with-trace [FILE]           Execution trace TSV; timestamped logs/ file by default.
+  -with-report [FILE]          HTML execution report; enabled by default.
+  -with-timeline [FILE]        HTML timeline; enabled by default.
+  -with-dag [FILE]             Optional workflow graph.
+  -stub-run -profile test      Synthetic test outputs, NOT a real proteomics search.
+  nextflow -log FILE run ...   Choose Nextflow's controller log (.nextflow.log default).
+  nextflow help run            Full list of native Nextflow options.
+
+STUDY JSON
+  samples[]                   sample_id, cohort, condition, replicate, raw_path.
+  modes                       ["DDA+", "DDA"] or either mode alone.
+  database                    fasta, sha256, contains_decoys; optionally contaminants.
+  tools                       Pinned MSFragger, IonQuant, diaTracer ZIP paths;
+                               optional FragPipe ZIP. See assets/tool_versions.json.
+  resources                   cpus, memory_gib; CLI settings take precedence.
+  organism                    Species filter (default null = all targets).
+  outdir                      JSON paths are relative to the study JSON.
+  proteomics                  Confirmed acquisition and analysis settings.
+  dia                         Browser DIA confirmation and optional target FASTA,
+                               Python 3.12, cache, raw root and library reference IDs.
+                               DDA-specific sections are preserved but inactive in DIA.
+  differential                enabled, methods, control, comparisons, fdr,
+                               edgeRun_upper (default/minimum 100000), workers, modifications,
+                               condition_labels (optional filename labels by condition),
+                               filter_low_counts (default false; all-zero rows excluded),
+                               min_count (default 10 when filtering enabled),
+                               min_total_count (default 15 when filtering enabled),
+                               modification_min_count (default 1 when filtering enabled),
+                               modification_min_total_count (default 3).
+  See examples/run.json and assets/config.schema.json for all fields.
+  A fresh interactive launch starts an empty study; no samples are preloaded.
+  Ctrl+C detaches terminal progress; the setup server and analysis stay available.
+  Reopen the same command to reconnect. Use Stop run in the browser to stop analysis.
+  If the setup server stops, keep the tab open and reopen the command; form entries
+  are retained during reconnection. Server log: .runtime/ui_server_<port>.log.
+
+DDA RESUME AND OUTPUTS
+  Use --continue to select the latest real session for the same output directory.
+  Both successful and interrupted analyses are eligible; setup, dry-run and preview
+  sessions are ignored. Native -resume remains available. Preserve work/ and .nextflow/.
+  Matching completed tasks are reused; unfinished searches may restart.
+  Completed FragPipe searches can also be reused after reporting/settings changes,
+  provided raw-input audits, search settings, database and tool versions match.
+  New checkpoints verify output checksums. Legacy searches require their work/
+  plan and provenance. Missing evidence or changed search inputs require a search.
+  <outdir>/final_results/START_HERE.html  Offline dashboard for main and optional results.
+  <outdir>/final_results/main_results/   Comparisons, counts, normalized matrices, z-scores and QC.
+  <outdir>/final_results/optional_analyses/  Selected gene, peptide/isoform and drug-interaction results.
+  <outdir>/analysis_details/   FragPipe outputs and detailed cohort/mode tables.
+  <outdir>/database/           Search FASTA.
+  Full final-results success: final_results/FINAL_RESULTS_COMPLETE.
+  See OUTPUTS.md for the complete tree and scientific definitions.
+  Run logs, reports and execution traces are in <outdir>/logs/.
+  The interface also writes the Nextflow controller log there. For direct CLI
+  runs, use nextflow -log <outdir>/logs/nextflow.log run ... to place it there.
+
+COMPLETE COMMAND-LINE EXAMPLES
+  Run these from the repository folder. Paths below are examples: replace them
+  with your study files. First create a study JSON with the interface, or:
+    cp examples/run.json config.local.json
+  Edit the sample paths, sample conditions/cohorts, FASTA path and SHA256,
+  registered tool ZIP paths, resources and desired search modes before running.
+
+  1. Open interactive setup; choose inputs and run only when ready:
+    nextflow run main.nf --interactively
+
+  2. Open a saved study in the interface, using a different port:
+    nextflow run main.nf --interactively --config config.local.json --ui_port 8766
+
+  3. Validate acquisition metadata, tool archives and FASTA without searching:
+    nextflow run main.nf --config config.local.json --validate_only --verbosity 2
+
+  4. Prepare and check search commands without searching:
+    nextflow run main.nf --config config.local.json --dry_run --verbosity 4
+
+  5. Run a complete analysis with explicit resources and output directory:
+    nextflow run main.nf --config config.local.json --outdir results/my_study --threads 16 --memory 64 --verbosity 4 -name my_study
+
+  6. Continue that study using completed work:
+    nextflow run main.nf --config config.local.json --outdir results/my_study --threads 16 --memory 64 --verbosity 4 --continue
+
+  7. Rebuild final tables, normalization and differential tests from completed results:
+    nextflow run main.nf --config config.local.json --outdir results/my_study --report_only --rscript /usr/bin/Rscript
+
+  8. Put task files on a separate disk (keep this directory for resume):
+    nextflow run main.nf --config config.local.json --outdir results/my_study -work-dir /data/scratch/my_study --verbosity 3
+
+  9. Use a custom runtime and R installation:
+    nextflow run main.nf --config config.local.json --runtime_dir /data/software/proteomics --rscript /usr/bin/Rscript --verbosity 3
+
+  Modes, conditions, cohorts, organism and differential methods are JSON settings,
+  not extra CLI flags. For DDA only set "modes": ["DDA"]. For DDA+ only set
+  "modes": ["DDA+"]. For both set "modes": ["DDA+", "DDA"].
+
+  To enable all differential methods, add this object to the study JSON:
+    "differential": {
+      "enabled": true, "methods": ["edgeR", "edgeRun", "limma"],
+      "control": "CTRL", "comparisons": "control", "fdr": 0.05,
+      "edgeRun_upper": 100000, "workers": 4, "modifications": false
+    }
+  GLM fitting is always used for differential analysis. edgeRun adds exact tests.
+  Without the chosen control, all pairwise comparisons are generated. Use
+  "comparisons": "all_pairwise" to request them explicitly. Independent replicates
+  are required (at least two per condition). DDA and DDA+ are analyzed separately.
+  edgeRun_upper is a summation bound, not a number of simulation iterations.
+
+SETUP
+  Automatic on launch. Nextflow and Java must already be on PATH.
+  Missing packages are installed locally; later launches reuse them.
+  For a direct CLI analysis, keep the foreground terminal open.
+  Browser-started analyses continue if the interface closes; reopen it to reconnect.
+
+Final matrices and differential proteins:
+  --report_only              Rebuild final_results from completed count tables; no spectrum search.
+  --rscript PATH             Rscript executable (default: auto-detect or install locally).
+  Configure differential.enabled/methods/control/comparisons/fdr/edgeRun_upper/workers in the study JSON.
+  edgeR always uses a GLM; edgeRun is a separate two-group exact test (upper >= 100000).
+
+  Set differential.modifications=true to test distinct modified peptides
+  per gene and protein, separately by modification type. Sparse counts use
+  TMMwsp and the edgeR v4 small-count GLM. Protein and supporting peptide tests
+  run for every selected method when differential.enabled=true. Set
+  optional_analyses.gene_counts=true for optional gene and gene-modification tests. Each run
+  writes final_results/README.md with definitions and interpretation.
+  Any condition can be the reference. Named files use METHOD_REFERENCE_vs_COMPARISON;
+  positive logFC means COMPARISON exceeds REFERENCE. Optional condition_labels
+  maps full names to short filename labels, e.g. {"Untreated cells": "CTRL"}.
+
+DIA-PASEF / DIA-NN (same main.nf entry point)
+  --dia_config FILE           DIA study JSON; separate from the DDA --config.
+  --dia_config FILE --validate_only
+                              Check raws, references, tools and FASTA; no search.
+  --dia_config FILE -resume   Resume native DIA-NN tasks with the same work dir.
+  --threads / --memory / --outdir override DIA JSON values.
+  Native Bruker DIA-PASEF, Python 3.12, DIA-NN 2.7.0 and Nextflow 26.04.2.
+  Independent empirical library and quantification per sample_type.
+  Browser setup: nextflow run main.nf --interactively, then confirm DIA-PASEF.
+  Cohorts become sample types; first 20 raw paths per type are default library
+  references (or all when fewer). Input checks preview the selected sample names.
+  Saved FASTA SHA256 is verified; a separate copy removes paired rev_ decoys
+  while retaining contaminant targets. The original FASTA and study stay intact.
+  DIA exports annotated protein/gene intensity matrices, optional limma-trend
+  all-pairs comparisons and service detection benchmarks. DDA choices remain inactive.
+  DIA uses native -resume; --continue, --report_only and --dry_run are DDA-only.
+  See examples/diapasef.json and the DIA-PASEF section in README.md.
+
+POST-SEARCH ANALYSIS
+  python scripts/reanalyze_counts.py --results FINAL_RESULTS --outdir NEW_RUN
+    All-pairs DDA count models without repeating spectrum searches.
+  python scripts/analyze_quantification.py --matrix TABLE --samples SAMPLES --outdir NEW_RUN --differential
+    Import DIA/FragPipe/provider quantities and compare all pairs.
+    Optional --service-matrix TABLE benchmarks gains, losses and overlap.
+  Matrix index: final_results/MATRICES.html and MATRICES.csv.

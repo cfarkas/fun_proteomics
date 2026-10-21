@@ -1,0 +1,79 @@
+{
+  "outdir": "results/my_study",
+  "modes": [
+    "DDA+",
+    "DDA"
+  ],
+  "organism": null,
+  "resources": {
+    "cpus": 8,
+    "memory_gib": 32
+  },
+  "database": {
+    "fasta": "/data/reference/search.fasta",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "contains_decoys": true,
+    "source_note": "Replace with your FASTA path and its sha256sum; choose the correct organism."
+  },
+  "tools": {
+    "msfragger_zip": "/data/tools/MSFragger-4.4.1.zip",
+    "ionquant_zip": "/data/tools/IonQuant-1.11.20.zip",
+    "diatracer_zip": "/data/tools/diaTracer-2.2.1.zip"
+  },
+  "samples": [
+    {
+      "sample_id": "CTRL_1",
+      "cohort": "study",
+      "condition": "CTRL",
+      "replicate": 1,
+      "raw_path": "/data/raw/CTRL_1.d"
+    },
+    {
+      "sample_id": "CTRL_2",
+      "cohort": "study",
+      "condition": "CTRL",
+      "replicate": 2,
+      "raw_path": "/data/raw/CTRL_2.d"
+    },
+    {
+      "sample_id": "CTRL_3",
+      "cohort": "study",
+      "condition": "CTRL",
+      "replicate": 3,
+      "raw_path": "/data/raw/CTRL_3.d"
+    },
+    {
+      "sample_id": "TREATMENT_1",
+      "cohort": "study",
+      "condition": "TREATMENT",
+      "replicate": 1,
+      "raw_path": "/data/raw/TREATMENT_1.d"
+    },
+    {
+      "sample_id": "TREATMENT_2",
+      "cohort": "study",
+      "condition": "TREATMENT",
+      "replicate": 2,
+      "raw_path": "/data/raw/TREATMENT_2.d"
+    },
+    {
+      "sample_id": "TREATMENT_3",
+      "cohort": "study",
+      "condition": "TREATMENT",
+      "replicate": 3,
+      "raw_path": "/data/raw/TREATMENT_3.d"
+    }
+  ],
+  "differential": {
+    "enabled": false,
+    "methods": [
+      "edgeR",
+      "limma"
+    ],
+    "control": "CTRL",
+    "comparisons": "control",
+    "fdr": 0.05,
+    "edgeRun_upper": 100000,
+    "workers": 4
+  }
+}

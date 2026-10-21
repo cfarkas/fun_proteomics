@@ -1,0 +1,78 @@
+name: Validate PASEF Proteomics
+on: [push, pull_request]
+jobs:
+  source_and_synthetic_pipeline:
+    runs-on: ubuntu-24.04
+    env:
+      PROTEOMICS_RSCRIPT: /usr/bin/Rscript
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install locked runtime
+        run: bash setup_environment.sh
+      - name: Install R and statistical dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y r-base r-base-dev python3.12 python3.12-venv libcurl4-openssl-dev libssl-dev libxml2-dev
+          bash scripts/install_differential_tools.sh /usr/bin/Rscript
+      - name: Validate semantics and publication exclusions
+        run: |
+          .runtime/env/bin/python -m unittest discover -s tests -v
+          .runtime/env/bin/python scripts/validate_repo.py
+      - name: Check Nextflow and synthetic end-to-end execution
+        run: |
+          export PATH="$PWD/.runtime/env/bin:$PATH"
+          export JAVA_HOME="$PWD/.runtime/env"
+          export NXF_HOME="$PWD/.runtime/nextflow"
+          export NXF_VER=26.04.2
+          export NXF_DISABLE_CHECK_LATEST=true
+          nextflow lint main.nf
+          bash tests/run_smoke.sh
+          export PROTEOMICS_DIA_PYTHON=/usr/bin/python3.12
+          /usr/bin/python3.12 tests/run_diapasef_smoke.py
+# Synthetic tests contain no spectra or registered tool binaries.
+# Real searches require user-supplied data and individually registered software.
+
+  dia_quantification:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned DIA reporting dependencies
+        run: pip install -r modules/diapasef/requirements-lock.txt
+      - name: Install intensity statistics
+        run: sudo apt-get update && sudo apt-get install -y r-base r-bioc-limma r-bioc-edger r-cran-jsonlite
+      - name: Check real reporting code on synthetic DIA reports
+        env:
+          PROTEOMICS_RSCRIPT: /usr/bin/Rscript
+        run: |
+          python -m unittest discover -s tests -p test_quantification.py -v
+          python -m unittest discover -s tests -p test_dia_reuse.py -v
+          python -m unittest discover -s tests -p test_matrix_catalog.py -v
+
+  python_distribution:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build and audit both distributions
+        run: |
+          python -m pip install build twine
+          python -m build
+          python -m twine check dist/*
+          python scripts/validate_distribution.py
+      - name: Install the wheel and R statistics
+        run: |
+          python -m pip install dist/*.whl
+          sudo apt-get update
+          sudo apt-get install -y r-base r-bioc-limma r-bioc-edger r-cran-jsonlite
+      - name: Test installed commands, verified reuse, and damaged-output recovery
+        env:
+          FUN_PROTEOMICS_TEST_INSTALLED: '1'
+          PROTEOMICS_RSCRIPT: /usr/bin/Rscript
+        run: |
+          python -m unittest discover -s tests -p test_package_cli.py -v
+          python tests/run_package_smoke.py

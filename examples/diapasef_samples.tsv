@@ -1,0 +1,9 @@
+sample_id	sample_type	condition	replicate	raw_path	library_reference
+001	serum	Control	1	serum/sample_001.d	true
+002	serum	Control	2	serum/sample_002.d	false
+003	serum	Treatment	1	serum/sample_003.d	true
+004	serum	Treatment	2	serum/sample_004.d	false
+001	cell_pellet	Control	1	cell_pellet/sample_001.d	true
+002	cell_pellet	Control	2	cell_pellet/sample_002.d	false
+003	cell_pellet	Treatment	1	cell_pellet/sample_003.d	true
+004	cell_pellet	Treatment	2	cell_pellet/sample_004.d	false

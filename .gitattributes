@@ -1,0 +1,7 @@
+*.py text eol=lf
+*.R text eol=lf
+*.nf text eol=lf
+*.config text eol=lf
+*.workflow text eol=lf
+*.tsv text eol=lf
+*.md text eol=lf

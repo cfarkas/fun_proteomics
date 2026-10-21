@@ -1,0 +1,44 @@
+{
+  "outdir": "results",
+  "modes": [
+    "DDA+",
+    "DDA"
+  ],
+  "organism": null,
+  "resources": {
+    "cpus": 8,
+    "memory_gib": 32
+  },
+  "database": {
+    "fasta": "",
+    "sha256": "",
+    "contains_decoys": true,
+    "source_note": "Replace with your FASTA path and its sha256sum; choose the correct organism."
+  },
+  "tools": {
+    "msfragger_zip": "",
+    "ionquant_zip": "",
+    "diatracer_zip": ""
+  },
+  "samples": [],
+  "differential": {
+    "enabled": false,
+    "methods": [
+      "edgeR",
+      "limma"
+    ],
+    "control": "CTRL",
+    "comparisons": "control",
+    "fdr": 0.05,
+    "edgeRun_upper": 100000,
+    "workers": 4
+  },
+  "optional_analyses": {
+    "hla_enriched": false,
+    "peptide_isoforms": false,
+    "drugs": {
+      "applied": false
+    },
+    "gene_counts": false
+  }
+}

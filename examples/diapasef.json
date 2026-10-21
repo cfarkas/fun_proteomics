@@ -1,0 +1,21 @@
+{
+  "acquisition": "DIA-PASEF",
+  "samplesheet": "diapasef_samples.tsv",
+  "raw_root": "../data/raw",
+  "canonical_fasta": "../data/targets.fasta",
+  "contaminant_fasta": null,
+  "install_cache": "../cache/software",
+  "service_matrices": {},
+  "expected_samples": 8,
+  "cpus": 32,
+  "memory_gib": 96,
+  "outdir": "../results/dia",
+  "differential": {
+    "enabled": false,
+    "comparisons": "all_pairwise",
+    "fdr": 0.05,
+    "min_replicates": 2,
+    "normalization": "none",
+    "gene_level": true
+  }
+}

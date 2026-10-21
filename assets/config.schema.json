@@ -1,0 +1,760 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Native DDA-PASEF run configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "outdir",
+    "modes",
+    "samples",
+    "database",
+    "tools"
+  ],
+  "properties": {
+    "outdir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "modes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "DDA+",
+          "DDA"
+        ]
+      }
+    },
+    "organism": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpus",
+        "memory_gib"
+      ],
+      "properties": {
+        "cpus": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memory_gib": {
+          "type": "integer",
+          "minimum": 4
+        }
+      }
+    },
+    "samples": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sample_id",
+          "cohort",
+          "condition",
+          "replicate",
+          "raw_path"
+        ],
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "cohort": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "condition": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\t\\r\\n]+$"
+          },
+          "replicate": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "raw_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "library_reference": {
+            "type": "boolean"
+          },
+          "service_sample": {
+            "type": "string",
+            "description": "Explicit provider column name without measurement suffix."
+          }
+        }
+      }
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fasta",
+        "sha256",
+        "contains_decoys"
+      ],
+      "properties": {
+        "fasta": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "contains_decoys": {
+          "type": "boolean"
+        },
+        "contaminants_zip": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contaminants_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_note": {
+          "type": "string"
+        }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "msfragger_zip",
+        "ionquant_zip",
+        "diatracer_zip"
+      ],
+      "properties": {
+        "fragpipe_zip": {
+          "type": "string",
+          "minLength": 1
+        },
+        "msfragger_zip": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ionquant_zip": {
+          "type": "string",
+          "minLength": 1
+        },
+        "diatracer_zip": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "proteomics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acquisition",
+        "analysis",
+        "confirmed"
+      ],
+      "properties": {
+        "acquisition": {
+          "enum": [
+            "DDA-PASEF",
+            "DIA-PASEF",
+            "Mixed",
+            "MS1-only",
+            "Unknown"
+          ]
+        },
+        "analysis": {
+          "enum": [
+            "global-label-free",
+            "phosphoproteomics",
+            "glycoproteomics",
+            "isobaric-labeling",
+            "targeted",
+            "immunopeptidomics"
+          ]
+        },
+        "confirmed": {
+          "type": "boolean"
+        },
+        "module_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "manual_override": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "differential": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "methods": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "edgeR",
+              "edgeRun",
+              "limma"
+            ]
+          }
+        },
+        "control": {
+          "type": "string"
+        },
+        "comparisons": {
+          "enum": [
+            "control",
+            "all_pairwise"
+          ]
+        },
+        "fdr": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "edgeRun_upper": {
+          "type": "integer",
+          "minimum": 100000,
+          "multipleOf": 100
+        },
+        "workers": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "modifications": {
+          "type": "boolean",
+          "default": false
+        },
+        "condition_labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+          }
+        },
+        "modification_min_count": {
+          "type": "number",
+          "default": 1
+        },
+        "modification_min_total_count": {
+          "type": "integer",
+          "default": 3
+        },
+        "filter_low_counts": {
+          "type": "boolean",
+          "default": false
+        },
+        "min_count": {
+          "type": "number",
+          "default": 10
+        },
+        "min_total_count": {
+          "type": "integer",
+          "default": 15
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              },
+              "filter_low_counts": {
+                "const": true
+              }
+            },
+            "required": [
+              "enabled",
+              "filter_low_counts"
+            ]
+          },
+          "then": {
+            "properties": {
+              "min_count": {
+                "minimum": 1
+              },
+              "min_total_count": {
+                "minimum": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              },
+              "filter_low_counts": {
+                "const": true
+              },
+              "modifications": {
+                "const": true
+              }
+            },
+            "required": [
+              "enabled",
+              "filter_low_counts",
+              "modifications"
+            ]
+          },
+          "then": {
+            "properties": {
+              "modification_min_count": {
+                "minimum": 1
+              },
+              "modification_min_total_count": {
+                "minimum": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "immunopeptidomics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hla_class"
+      ],
+      "properties": {
+        "hla_class": {
+          "enum": [
+            "I",
+            "II"
+          ],
+          "description": "Class enriched during sample preparation; not predicted from sequence."
+        }
+      }
+    },
+    "optional_analyses": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hla_enriched": {
+          "type": "boolean"
+        },
+        "peptide_isoforms": {
+          "type": "boolean",
+          "default": false
+        },
+        "statistics": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "features": {
+              "type": "array",
+              "uniqueItems": true,
+              "minItems": 1,
+              "items": {
+                "enum": [
+                  "peptide",
+                  "isoform"
+                ]
+              }
+            },
+            "methods": {
+              "type": "array",
+              "uniqueItems": true,
+              "minItems": 1,
+              "items": {
+                "enum": [
+                  "edgeR",
+                  "limma"
+                ]
+              }
+            },
+            "comparisons": {
+              "enum": [
+                "control",
+                "all_pairwise"
+              ]
+            },
+            "control": {
+              "type": "string"
+            },
+            "fdr": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            },
+            "filter_low_counts": {
+              "type": "boolean",
+              "default": false
+            },
+            "min_count": {
+              "type": "number",
+              "default": 1
+            },
+            "min_total_count": {
+              "type": "integer",
+              "default": 3
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "enabled": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              },
+              "then": {
+                "required": [
+                  "features",
+                  "methods"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "enabled": {
+                    "const": true
+                  },
+                  "filter_low_counts": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "enabled",
+                  "filter_low_counts"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "min_count": {
+                    "minimum": 1
+                  },
+                  "min_total_count": {
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "drugs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "applied"
+          ],
+          "properties": {
+            "applied": {
+              "type": "boolean"
+            },
+            "study_type": {
+              "enum": [
+                "synergy",
+                "single"
+              ]
+            },
+            "interaction": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "enabled"
+              ],
+              "properties": {
+                "methods": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "enum": [
+                      "edgeR",
+                      "limma",
+                      "monte_carlo"
+                    ]
+                  }
+                },
+                "monte_carlo": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "simulations": {
+                      "type": "integer",
+                      "minimum": 99,
+                      "maximum": 1000000
+                    },
+                    "seed": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483646
+                    },
+                    "workers": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    }
+                  }
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "cohort": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+                },
+                "control": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^[^\\t\\r\\n]+$"
+                },
+                "drug_a": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^[^\\t\\r\\n]+$"
+                },
+                "drug_b": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^[^\\t\\r\\n]+$"
+                },
+                "combination": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^[^\\t\\r\\n]+$"
+                },
+                "matched_design": {
+                  "type": "boolean"
+                },
+                "fdr": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "enabled": {
+                        "const": true
+                      }
+                    },
+                    "required": [
+                      "enabled"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "cohort",
+                      "control",
+                      "drug_a",
+                      "drug_b",
+                      "combination"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applied": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "applied"
+                ]
+              },
+              "then": {
+                "required": [
+                  "study_type"
+                ]
+              },
+              "else": {
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "study_type"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "interaction"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "study_type": {
+                    "const": "single"
+                  }
+                },
+                "required": [
+                  "study_type"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "interaction": {
+                    "properties": {
+                      "enabled": {
+                        "const": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "gene_counts": {
+          "type": "boolean",
+          "default": false,
+          "description": "Optional gene-level proteomics counts and comparisons; excludes peptides shared between genes. Differential settings control its tests."
+        }
+      }
+    },
+    "dia": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "confirmed": {
+          "type": "boolean"
+        },
+        "canonical_fasta": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contaminant_fasta": {
+          "type": "string",
+          "minLength": 1
+        },
+        "install_cache": {
+          "type": "string",
+          "minLength": 1
+        },
+        "python": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "library_reference_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "differential": {
+          "type": "object",
+          "description": "DIA log-intensity limma settings; separate from DDA count tests."
+        },
+        "service_matrices": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "proteomics"
+        ],
+        "properties": {
+          "proteomics": {
+            "required": [
+              "analysis"
+            ],
+            "properties": {
+              "analysis": {
+                "const": "immunopeptidomics"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "immunopeptidomics"
+        ],
+        "properties": {
+          "modes": {
+            "const": [
+              "DDA"
+            ]
+          },
+          "differential": {
+            "properties": {
+              "modifications": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "immunopeptidomics"
+        ]
+      },
+      "then": {
+        "required": [
+          "proteomics"
+        ],
+        "properties": {
+          "proteomics": {
+            "required": [
+              "analysis"
+            ],
+            "properties": {
+              "analysis": {
+                "const": "immunopeptidomics"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

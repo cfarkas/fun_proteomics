@@ -1,0 +1,26 @@
+# Method defaults validated on the LFO study. Evaluate performance on new types.
+[compute]
+read_threads = 8
+minimum_free_gb = 100
+
+[search]
+precursor_q = 0.01
+global_protein_q = 0.01
+run_protein_q = 0.01
+ms1_ppm = 15.0
+ms2_ppm = 15.0
+precursor_mz_min = 400
+precursor_mz_max = 1000
+peptide_length_min = 7
+peptide_length_max = 35
+charge_min = 2
+charge_max = 4
+fixed_carbamidomethyl_c = true
+
+[method]
+missed_cleavages = 1
+methionine_oxidation = false
+protein_nterm_acetylation = false
+max_variable_modifications = 0
+force_ms2 = true
+scan_window = 8
