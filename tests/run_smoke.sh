@@ -41,5 +41,9 @@ if nextflow run "$repo/main.nf" --config "$fixture/test.local.json" --config_fil
     echo 'FAIL: conflicting configuration aliases were accepted' >&2
     exit 1
 fi
-rg -q 'Use --config OR --config_file, not both' "$fixture/alias_conflict.log"
+python - "$fixture/alias_conflict.log" <<'CHECK_ALIAS'
+from pathlib import Path
+import sys
+assert 'Use --config OR --config_file, not both' in Path(sys.argv[1]).read_text()
+CHECK_ALIAS
 echo 'PASS: both config aliases work independently and conflict only when both are supplied'
