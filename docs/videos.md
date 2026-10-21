@@ -1,0 +1,13 @@
+# Interactive walkthrough videos
+
+[Open the video guide](https://cfarkas.github.io/fun_proteomics/). The three videos show actual application sessions with captions. All inputs are synthetic; no patient data appear.
+
+| Video | What it shows | Transcript |
+| --- | --- | --- |
+| [Browser: matrix analysis](https://github.com/cfarkas/fun_proteomics/releases/download/v0.6.0/browser-analysis.mp4) | Choose files, confirm an independent design, save, run real all-pairs statistics, and open CSV/TSV matrices. | [Captions](browser-analysis.vtt) |
+| [Terminal: launch and continue](https://github.com/cfarkas/fun_proteomics/releases/download/v0.6.0/terminal-analysis.mp4) | Answer terminal questions, run the synthetic analysis, and verify completed outputs with `--continue`. | [Captions](terminal-analysis.vtt) · [session transcript](terminal-analysis.txt) |
+| [Raw DIA: interactive setup](https://github.com/cfarkas/fun_proteomics/releases/download/v0.6.0/raw-dia-setup.mp4) | Scan `.d` folders, assign conditions, choose FASTA, review all pairs, and save a validated raw project. This fixture has synthetic acquisition metadata; no spectrum search is performed. | [Captions](raw-dia-setup.vtt) |
+
+To follow along, use the [quick start](quick_start.md). The browser and terminal videos execute the same analysis code available after `pip install fun_proteomics`. The terminal video replays an actual captured terminal session at a readable pace. The raw video demonstrates configuration only because its fixture contains no real spectra.
+
+The recordings can be reproduced with `scripts/record_walkthroughs.py` after installing the package and the recording-only Playwright/ffmpeg tools. Media files are release assets, keeping them outside the Python wheel. Source, version, commands and media checksums are recorded with the release.

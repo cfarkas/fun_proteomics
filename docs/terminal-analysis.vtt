@@ -1,0 +1,35 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:08.279
+For SSH or terminal users: add --terminal and --run to the same setup command.
+
+00:00:08.279 --> 00:00:15.555
+Choose a quantification matrix, raw DIA, raw DDA or an existing run. Enter accepts the displayed default.
+
+00:00:15.555 --> 00:00:21.323
+Provide the protein matrix and sample table. The same inputs work in browser setup.
+
+00:00:21.323 --> 00:00:27.084
+A matching FASTA can supply missing gene symbols. This synthetic table already includes gene names.
+
+00:00:27.084 --> 00:00:34.356
+Optionally add service quantification to benchmark shared proteins and detection gains or losses.
+
+00:00:34.356 --> 00:00:40.120
+Confirm independence only when samples represent different patients or biological replicates.
+
+00:00:40.120 --> 00:00:48.902
+Setup saves the configuration, reports the planned comparisons, and starts the real analysis.
+
+00:00:48.902 --> 00:00:54.667
+Later, from any working directory, continue by supplying the same project folder.
+
+00:00:54.667 --> 00:00:59.676
+Setup saves the configuration, reports the planned comparisons, and starts the real analysis.
+
+00:00:59.676 --> 00:01:06.192
+Checksums and recorded inputs match. Completed results are reused without recomputation.
+
+00:01:06.192 --> 00:01:13.201
+Open START_HERE.html for results and MATRICES.html for clear CSV and TSV links.
+

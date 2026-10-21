@@ -13,6 +13,9 @@ params.dry_run = false
 params.outdir = null
 params.help = false
 params.interactively = false
+params.interactive = false
+params.project = null
+params.terminal = false
 params.ui_port = 8765
 params.verbose = null
 params.verbosity = null
@@ -294,7 +297,7 @@ workflow {
             progressMonitor.destroy()
             progressMonitor.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)
         }
-        if (params.interactively.toString() == 'true') {
+        if (params.interactively.toString() == 'true' || params.interactive.toString() == 'true') {
             log.info "[INTERFACE ${workflow.success ? 'CLOSED' : 'FAILED'}] ${workflow.runName} | exit ${workflow.exitStatus}. Analysis status is recorded separately in the output logs; reopen the interface to reconnect."
         } else {
             log.info "[WORKFLOW ${workflow.success ? 'COMPLETE' : 'FAILED'}] ${workflow.runName} | elapsed ${workflow.duration} | exit ${workflow.exitStatus}"
@@ -306,7 +309,7 @@ workflow {
         return
     }
     def allowed = ['config_file', 'config', 'validate_only', 'dry_run', 'outdir', 'help', 'interactively', 'ui_port',
-                   'verbose', 'verbosity', 'threads', 'cpus', 'memory', 'runtime_dir', 'continue', 'resume', 'report_only', 'rscript', 'dia_config']
+                   'verbose', 'verbosity', 'threads', 'cpus', 'memory', 'runtime_dir', 'continue', 'resume', 'report_only', 'rscript', 'dia_config', 'interactive', 'project', 'terminal']
     def unknown = params.keySet().findAll { !allowed.contains(it) }
     if (unknown) error "Unknown pipeline option(s): ${unknown.collect { '--' + it }.join(', ')}. See --help."
     if (params.verbosity != null && params.verbose != null) error 'Use --verbosity OR legacy --verbose, not both.'
@@ -314,6 +317,17 @@ workflow {
     def verbosity = params.verbosity != null ? boundedInteger(params.verbosity, '--verbosity', 1, 4) : params.verbose != null ? (params.verbose.toString() == 'true' ? 4 : 1) : 3
     if (params.threads != null && params.cpus != null) error 'Use --threads OR --cpus, not both.'
     if (params.config != null && params.config_file != null) error 'Use --config OR --config_file, not both.'
+    if (!['true','false'].contains(params.interactive.toString()) || !['true','false'].contains(params.terminal.toString())) error '--interactive and --terminal accept true or false.'
+    if ((params.project != null || params.terminal.toString() == 'true') && params.interactive.toString() != 'true') error '--project and --terminal require --interactive.'
+    if (params.interactive.toString() == 'true') {
+        if (params.config != null || params.dia_config != null || params.interactively || params.continue) error 'Use --interactive with --project <study-folder>; use the browser to load settings.'
+        def command = [System.getenv('PROTEOMICS_PYTHON') ?: 'python3', "${projectDir}/scripts/setup_project.py".toString()]
+        if (params.project != null) command += ['--project', params.project.toString()]
+        if (params.terminal.toString() == 'true') command += ['--terminal']
+        def setupProcess = new ProcessBuilder(command).inheritIO().start()
+        if (setupProcess.waitFor() != 0) error 'Setup failed; see the message above.'
+        return
+    }
     // A folder selects portable continuation; bare --continue keeps the DDA resume interface.
     if (params.continue != null && !['true', 'false'].contains(params.continue.toString())) {
         if (params.config != null || params.config_file != null || params.dia_config != null) error 'Use --continue <run-folder> alone; its saved settings identify the analysis.'

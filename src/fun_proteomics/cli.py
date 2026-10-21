@@ -17,9 +17,10 @@ from .continuation import (dia_settings, fresh_output, latest_legacy_nextflow, n
 
 
 def parser():
-    p = argparse.ArgumentParser(prog='fun_proteomics', description='Launch from any directory; continue verified searches and organized results.')
+    p = argparse.ArgumentParser(prog='fun_proteomics', description='Set up a study, check it, run it, and open clearly organized results.', epilog='Start: fun_proteomics setup --project /data/my-study. SSH: add --terminal. Resume: --continue /data/my-study')
+    p.add_argument('--interactive', action='store_true', help='Shortcut for setup; follow with --project STUDY')
     p.add_argument('--version', action='version', version='fun_proteomics '+__version__)
-    p.add_argument('--project', help='Use an existing workflow checkout and its installed runtime')
+    p.add_argument('--workflow-dir', '--project', dest='project', help='Reuse a workflow checkout and its runtime (--project is the legacy alias)')
     p.add_argument('--cache-dir', help='Writable location for the packaged workflow')
     p.add_argument('--rscript', help='Rscript executable for native statistics')
     p.add_argument('--r-library', help='Existing R package library')
@@ -31,16 +32,25 @@ def parser():
     p.add_argument('--independent-samples', action='store_true', help='Confirm one independent biological sample per row')
     p.add_argument('--hash-raw', action='store_true', help='Hash all raw components during verification')
     sub = p.add_subparsers(dest='command')
-    run = sub.add_parser('run', help='Start a native Nextflow workflow')
+    from .study import add_commands
+    add_commands(sub)
+    run = sub.add_parser('run', help='Run or continue a saved study')
     group = run.add_mutually_exclusive_group(required=True)
-    group.add_argument('--config', help='DDA study JSON')
+    group.add_argument('--config', help='Saved PROJECT/config/run.json (also accepts legacy DDA JSON)')
     group.add_argument('--dia-config', help='DIA study JSON')
-    run.add_argument('--outdir', required=True, dest='run_outdir')
+    run.add_argument('--outdir', dest='run_outdir', help='Required only for legacy raw-workflow JSON')
     run.add_argument('--validate-only', action='store_true')
-    ui = sub.add_parser('ui', help='Launch the study interface through Nextflow')
+    ui = sub.add_parser('ui', help='Open guided setup; --advanced opens the original raw editor')
     ui.add_argument('--config')
-    ui.add_argument('--port', type=int, default=8765)
-    sub.add_parser('doctor', help='Report installed Python, Nextflow, Java and R dependencies')
+    ui.add_argument('--port', type=int, default=0)
+    ui.add_argument('--advanced', action='store_true')
+    ui.add_argument('--no-browser', action='store_true')
+    doctor = sub.add_parser('doctor', help='Check tools and explain what is missing')
+    doctor.add_argument('--json', action='store_true')
+    doctor.add_argument('--mode', choices=['matrix', 'dia', 'dda'], default='matrix')
+    install = sub.add_parser('install', help='Install analysis tools in the writable workflow cache')
+    install.add_argument('--conda', action='store_true', help='Install pinned Python/Java/Nextflow and R tools')
+    install.add_argument('--r-only', action='store_true', help='Install analysis packages using an existing Rscript')
     sub.add_parser('workflow-path', help='Print the workflow directory for direct nextflow run')
     for command, help_text in [('quantify','Import a quantification matrix using native Python'),
                                ('counts','Reanalyze delivered DDA counts using native Python'),
@@ -53,6 +63,11 @@ def parser():
 def environment(project, args, inherited_r_library=None, inherited_rscript=None):
     env = os.environ.copy()
     rscript = args.rscript or inherited_rscript or env.get('PROTEOMICS_RSCRIPT')
+    if not rscript:
+        settings=project/'.runtime/runtime-settings.json'
+        installed=read_json(settings).get('rscript') if settings.is_file() else None
+        local=project/'.runtime/r-env/bin/Rscript'
+        rscript=installed if installed and Path(installed).is_file() else str(local) if local.is_file() else None
     if not rscript:
         rscript = '/usr/bin/Rscript' if Path('/usr/bin/Rscript').is_file() else shutil.which('Rscript')
     if rscript:
@@ -145,9 +160,12 @@ def execute(command, cwd, env, state_path, record, inspect=False):
         write_json(state_path, record)
         process = None
         try:
-            process = subprocess.Popen(command, cwd=cwd, env=env, start_new_session=True)
+            process = subprocess.Popen(command, cwd=cwd, env=env, start_new_session=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             record.update(pid=process.pid, process_identity=process_identity(process.pid))
             write_json(state_path, record)
+            with (state_path.parent/'analysis.log').open('a') as log:
+                for line in process.stdout:
+                    print(line,end='',flush=True);log.write(line);log.flush()
             code = process.wait()
         except KeyboardInterrupt:
             if process is not None and process.poll() is None:
@@ -166,6 +184,8 @@ def execute(command, cwd, env, state_path, record, inspect=False):
             record.update(status='failed', ended=now(), error=str(error))
             write_json(state_path, record)
             raise
+        finally:
+            if process is not None and process.stdout is not None: process.stdout.close()
         record.update(status='completed' if code == 0 else 'failed', exit_code=code, ended=now())
         if record['engine'] == 'nextflow':
             record['session'] = nextflow_session(cwd, command)
@@ -290,8 +310,11 @@ def continue_run(args, project):
 def main(argv=None):
     p = parser()
     tokens = list(sys.argv[1:] if argv is None else argv)
+    if '--interactive' in tokens or '--interactively' in tokens:
+        index=next(i for i,v in enumerate(tokens) if v in ('--interactive','--interactively'))
+        tokens=tokens[:index]+['setup']+tokens[index+1:]
     native = {'quantify', 'counts', 'matrices'}
-    value_flags = {'--project','--cache-dir','--rscript','--r-library','--nextflow','--continue','--outdir','--service-matrix'}
+    value_flags = {'--workflow-dir','--project','--cache-dir','--rscript','--r-library','--nextflow','--continue','--outdir','--service-matrix'}
     boundary = None
     skip = False
     for index, token in enumerate(tokens):
@@ -300,8 +323,8 @@ def main(argv=None):
             continue
         if token in value_flags:
             skip = True
-        elif token in native:
-            boundary = index
+        elif token in {'setup','check','system','status','demo','run','ui','doctor','install','workflow-path',*native}:
+            if token in native: boundary = index
             break
     args = p.parse_args(tokens if boundary is None else tokens[:boundary+1])
     if boundary is not None:
@@ -311,18 +334,26 @@ def main(argv=None):
     if args.continue_folder and args.command:
         p.error('Use --continue FOLDER or a subcommand, not both')
     if not args.continue_folder and not args.command:
-        p.print_help();return 0
+        print('fun_proteomics | Proteomics analysis\n\nStart:     fun_proteomics setup --project /data/my-study\nTerminal:  add --terminal\nContinue:  fun_proteomics --continue /data/my-study\nCheck tools: fun_proteomics doctor\nGuides and videos: https://cfarkas.github.io/fun_proteomics/\nAll commands: fun_proteomics --help');return 0
     try:
         project = resolve_project(args.project, args.cache_dir)
         if args.command == 'workflow-path':
             print(project);return 0
+        from . import study
+        if args.command in ('setup', 'check', 'system', 'status', 'demo'):
+            return study.dispatch(args, project)
         if args.command == 'doctor':
-            status={'version':__version__,'python':sys.executable,'workflow':str(project),
-                    'python_dependencies':{n:importlib.util.find_spec(n) is not None for n in ['pandas','numpy','pyarrow','matplotlib','openpyxl','jsonschema']},
-                    'nextflow':shutil.which(args.nextflow or str(project/'.runtime/env/bin/nextflow')) or shutil.which('nextflow'),
-                    'java':shutil.which('java'),'Rscript':environment(project,args).get('PROTEOMICS_RSCRIPT')}
-            print(json.dumps(status,indent=2));return 0
+            from .requirements import doctor
+            return doctor(project,args)
+        if args.command == 'install':
+            from .requirements import install
+            return install(project,args)
         if args.continue_folder:
+            config = Path(args.continue_folder).expanduser()/'config/run.json'
+            if config.is_file() and study.is_study(config):
+                if args.outdir or args.service_matrix or args.independent_samples:
+                    raise ValueError('A guided study uses its saved settings; create a new project to change inputs or design')
+                return study.run_study(config, args, project)
             return continue_run(args,project)
         env=environment(project,args)
         if args.command in ('quantify','counts','matrices'):
@@ -348,11 +379,21 @@ def main(argv=None):
                 command = replace_option(command, '--outdir', output/'final_results')
             return execute(command,project,env,output/'.fun_proteomics/run.json',record,args.print_command)
         if args.command == 'ui':
+            if not args.advanced and (not args.config or study.is_study(Path(args.config).expanduser())):
+                from .setup_web import serve
+                return serve(args,project)
+            args.port = args.port or 8765
             command=[nextflow_binary(project,args,env),'run',str(project/'main.nf'),'--interactively','--ui_port',str(args.port)]
             if args.config:command+=['--config',str(Path(args.config).expanduser().resolve())]
             if args.print_command:print(shlex.join(command));return 0
             return subprocess.run(command,env=env).returncode
         if args.command == 'run':
+            if args.config and study.is_study(Path(args.config).expanduser()):
+                if args.run_outdir:
+                    raise ValueError('The saved project defines its results folder; omit --outdir')
+                return study.run_study(Path(args.config).expanduser(),args,project,check_only=args.validate_only)
+            if not args.run_outdir:
+                raise ValueError('Legacy raw configurations require --outdir; guided studies use setup --project FOLDER')
             output=Path(args.run_outdir).expanduser().resolve()
             state=output/'.fun_proteomics/run.json'
             if output.exists() and any(output.iterdir()):
@@ -367,4 +408,6 @@ def main(argv=None):
                            config=str(config),config_sha256=digest(config)),args.print_command)
     except (ValueError, OSError, KeyError, json.JSONDecodeError) as error:
         print('fun_proteomics: '+str(error),file=sys.stderr);return 2
+    except (KeyboardInterrupt, EOFError):
+        print('\nSetup interrupted. Saved inputs and results are preserved.',file=sys.stderr);return 130
     return 0

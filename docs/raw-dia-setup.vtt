@@ -1,0 +1,23 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:06.254
+Launch with: fun_proteomics setup --project /path/to/my-study. One folder holds settings and results.
+
+00:00:06.254 --> 00:00:12.317
+Choose DIA-PASEF and scan your raw-data folder. This demo contains synthetic acquisition metadata only.
+
+00:00:12.317 --> 00:00:18.395
+Assign a condition to every sample. Conditions are never guessed from filenames.
+
+00:00:18.395 --> 00:00:26.115
+Confirm independent biological replicates. Choose the matching target-only FASTA with gene annotations.
+
+00:00:26.115 --> 00:00:33.488
+Check inputs before running. Two conditions give one comparison at protein and available gene levels.
+
+00:00:33.488 --> 00:00:40.491
+The configuration is saved. With real spectra and installed tools, Run / continue starts the Nextflow workflow.
+
+00:00:40.491 --> 00:00:46.498
+This recording stops after setup. No spectrum search or biological result is claimed for synthetic acquisitions.
+

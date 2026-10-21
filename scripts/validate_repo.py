@@ -6,8 +6,8 @@ import re
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 ROOT_FILES={'README.md','GITHUB_UPLOAD.md','OUTPUTS.md','LICENSE_NOTES.md','SOURCE_SHA256SUMS','main.nf','nextflow.config','setup_environment.sh','.gitignore','.gitattributes','pyproject.toml','MANIFEST.in','PACKAGE_README.md','LICENSE'}
-SOURCE_DIRS={'assets','pipeline_lib','scripts','tests','envs','examples','.github','modules','src'}
-EXTENSIONS={'.html','.py','.R','.sh','.json','.txt','.md','.nf','.config','.workflow','.yml','.yaml','.tsv','.csv','.toml'}
+SOURCE_DIRS={'assets','pipeline_lib','scripts','tests','envs','examples','.github','modules','src','docs'}
+EXTENSIONS={'.html','.py','.R','.sh','.json','.txt','.md','.nf','.config','.workflow','.yml','.yaml','.tsv','.csv','.toml','.vtt','.cast'}
 
 def source_files(directory):
     for path in sorted(directory.iterdir()):

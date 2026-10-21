@@ -1,0 +1,29 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:06.174
+Launch with: fun_proteomics setup --project /path/to/my-study. One folder holds settings and results.
+
+00:00:06.174 --> 00:00:11.216
+Browse files on the computer running the analysis. Select your protein quantification table.
+
+00:00:11.216 --> 00:00:17.290
+Select the sample table. Sample IDs match quantity columns; condition names define the comparison groups.
+
+00:00:17.290 --> 00:00:25.713
+Keep all-versus-all comparisons and confirm independent samples. An optional service matrix adds detection gains and losses.
+
+00:00:25.713 --> 00:00:31.780
+The check finds six samples, three condition pairs, ten protein groups and ten unambiguous genes.
+
+00:00:31.780 --> 00:00:39.564
+Save configuration and check writes config/run.json. Now start the saved analysis.
+
+00:00:39.564 --> 00:00:45.592
+The real synthetic analysis is complete. Open results for comparisons, QC and the service benchmark.
+
+00:00:45.592 --> 00:00:54.479
+The matrix catalogue links directly to CSV and TSV files for proteins, genes and transformed quantities.
+
+00:00:54.479 --> 00:01:02.484
+Run / continue verifies completed outputs. Unchanged results are reused without repeating the analysis.
+

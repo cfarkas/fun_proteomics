@@ -1,5 +1,6 @@
 include pyproject.toml MANIFEST.in PACKAGE_README.md README.md OUTPUTS.md GITHUB_UPLOAD.md LICENSE LICENSE_NOTES.md SOURCE_SHA256SUMS main.nf nextflow.config setup_environment.sh .gitignore .gitattributes
 graft src/fun_proteomics
+graft docs
 graft assets
 graft pipeline_lib
 graft scripts

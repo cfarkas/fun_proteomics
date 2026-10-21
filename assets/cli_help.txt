@@ -4,7 +4,15 @@ USAGE
   nextflow run main.nf [pipeline options] [Nextflow options]
   nextflow run main.nf --help
 
-INTERACTIVE SETUP
+GUIDED SETUP (RECOMMENDED)
+  fun_proteomics setup --project /data/my-study
+  nextflow run main.nf --interactive --project /data/my-study
+  Choose data, review samples, save configuration, then run. Add --terminal
+  to answer questions over SSH. Uses the same native Python/Nextflow engines.
+  Continue from anywhere: fun_proteomics --continue /data/my-study
+  Open my-study/START_HERE.html or my-study/MATRICES.html.
+
+ADVANCED RAW EDITOR
   nextflow run main.nf --interactively
   Prepares missing runtime/R dependencies, then opens your browser automatically.
   The first launch needs internet. Select input folders, assign conditions and
@@ -17,7 +25,10 @@ INTERACTIVE SETUP
   If this project's interface is already running, reopens its current settings.
 
 PIPELINE OPTIONS (two dashes)
-  --interactively              Open the local configuration interface, without searching.
+  --interactive               Open the simplified guided setup.
+  --project DIR               Study folder for guided setup.
+  --terminal                  Use terminal questions with --interactive.
+  --interactively              Open the advanced raw configuration interface.
   --ui_port N                  Interface port, default 8765 (range 1024–65535).
   --help                       Print this help; do not run any tasks.
   --config_file FILE           Study JSON (default: project/config.local.json).
