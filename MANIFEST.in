@@ -1,13 +1,13 @@
 include pyproject.toml MANIFEST.in PACKAGE_README.md README.md OUTPUTS.md GITHUB_UPLOAD.md LICENSE LICENSE_NOTES.md SOURCE_SHA256SUMS main.nf nextflow.config setup_environment.sh .gitignore .gitattributes
-recursive-include src/fun_proteomics *.py
-recursive-include assets *.html *.json *.txt *.workflow
-recursive-include pipeline_lib *.py *.R
-recursive-include scripts *.py *.sh
-recursive-include tests *.py *.sh
-recursive-include envs *.yml
-recursive-include examples *.json *.csv *.tsv *.md
-recursive-include modules/diapasef *.py *.nf *.toml *.txt *.md
-recursive-include .github *.yml
+graft src/fun_proteomics
+graft assets
+graft pipeline_lib
+graft scripts
+graft tests
+graft envs
+graft examples
+graft modules/diapasef
+graft .github
 prune src/fun_proteomics/_workflow
 prune .runtime
 prune .test-runtime

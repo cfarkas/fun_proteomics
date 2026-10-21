@@ -28,7 +28,7 @@ def main():
             result=subprocess.run([*base,*map(str,arguments)],cwd=foreign,env=env,capture_output=True,text=True,timeout=180)
             assert result.returncode==expected, result.stdout+'\n'+result.stderr
             return result.stdout+result.stderr
-        assert '0.5.0' in launch('--version')
+        assert fun_proteomics.__version__ in launch('--version')
         workflow=Path(launch('workflow-path').strip())
         assert workflow.is_relative_to(root/'workflow cache')
         assert (workflow/'pipeline_lib/results_dashboard.html').is_file()
