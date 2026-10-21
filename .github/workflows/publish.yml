@@ -6,6 +6,8 @@ permissions:
 jobs:
   build_and_test:
     runs-on: ubuntu-24.04
+    env:
+      R_LIBS: ${{ github.workspace }}/.runtime/R-library
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,7 +21,8 @@ jobs:
           python scripts/validate_distribution.py
           python -m pip install dist/*.whl
           sudo apt-get update
-          sudo apt-get install -y r-base r-bioc-limma r-bioc-edger r-cran-jsonlite
+          sudo apt-get install -y r-base r-base-dev r-bioc-limma r-bioc-edger r-cran-jsonlite r-cran-statmod r-cran-data.table
+          bash scripts/install_differential_tools.sh /usr/bin/Rscript
       - name: Test the installed package
         env:
           FUN_PROTEOMICS_TEST_INSTALLED: '1'
