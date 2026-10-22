@@ -101,6 +101,44 @@ class BafTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'already exists'):
             stage_search_input(source,target,True)
 
+    def test_fast_scratch_keeps_spectra_and_tables_but_removes_disposable_caches(self):
+        from baf_staging import search_staging
+        from pipeline import stage_search_input, verify_staged_mzml, digest, save
+        from unittest.mock import patch
+        search=self.root/'search';search.mkdir()
+        source=self.root/'sample.mzML';source.write_bytes(b'centroid spectra')
+        with search_staging(search,[source],[self.root/'original.d'],self.root/'scratch') as linked:
+            target=search/'raw/sample.mzML';scratch=(search/'raw').resolve().parent
+            with patch('pipeline.os.link',side_effect=OSError('cross-device link')):
+                self.assertEqual(stage_search_input(source,target,True,linked),'symlink')
+            verify_staged_mzml(source,target,digest(source))
+            save(search/'raw/sample.copy_complete.json',{'source':str(source),'files':{'sha256':digest(source)}})
+            (search/'raw/sample.quantindex').write_bytes(b'disposable index')
+            (search/'run/combined_protein.tsv').write_text('persistent result')
+        self.assertFalse(scratch.exists());self.assertTrue((search/'raw/sample.mzML').samefile(source))
+        self.assertEqual((search/'run/combined_protein.tsv').read_text(),'persistent result')
+        self.assertFalse((search/'raw/sample.quantindex').exists())
+    def test_fast_scratch_retains_failed_caches_and_rejects_source_directories(self):
+        from baf_staging import search_staging
+        search=self.root/'search';search.mkdir();raw=self.root/'original.d';raw.mkdir()
+        source=self.root/'sample.mzML';source.write_bytes(b'centroid spectra')
+        with self.assertRaisesRegex(ValueError,'outside every source'):
+            with search_staging(search,[source],[raw],raw/'cache'):pass
+        self.assertFalse((raw/'cache').exists())
+        with self.assertRaisesRegex(RuntimeError,'search failed'):
+            with search_staging(search,[source],[raw],self.root/'scratch'):
+                (search/'raw/incomplete.index').write_bytes(b'partial')
+                raise RuntimeError('search failed')
+        self.assertEqual((search/'raw/incomplete.index').read_bytes(),b'partial')
+    def test_fast_scratch_checks_free_space_before_starting(self):
+        from baf_staging import search_staging
+        from unittest.mock import patch
+        from types import SimpleNamespace
+        source=self.root/'sample.mzML';source.write_bytes(b'centroid spectra')
+        with patch('baf_staging.shutil.disk_usage',return_value=SimpleNamespace(free=0)):
+            with self.assertRaisesRegex(ValueError,'Insufficient search scratch'):
+                with search_staging(self.root/'search',[source],[],self.root/'scratch'):pass
+
     def test_vendor_dependencies_and_no_mixed_acquisition(self):
         raw=self.root/'sample.d';raw.mkdir()
         for name in ['analysis.baf','analysis.baf_xtr','Calibrator.ami','analysis.sqlite']:(raw/name).write_text('test')

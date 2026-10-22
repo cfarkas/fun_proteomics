@@ -47,3 +47,11 @@ MS1 LFQ includes transferred quantifications when MBR is enabled. It is not a co
 Only conventional DDA BAF scan modes are supported. bbCID/DIA BAF and profile-only BAF fail explicitly. MGF exports lack the MS1 data needed for this LFQ route. See the [FragPipe input-format guidance](https://fragpipe.nesvilab.org/docs/tutorial_fragpipe.html), [pyBaf2Sql reader](https://github.com/gtluu/pyBaf2Sql), and [TIMSCONVERT methods](https://doi.org/10.1093/bioinformatics/btac419).
 
 Converted mzML files are linked into the search staging folder on the same filesystem to avoid a second full data copy. Other filesystems fall back to a verified copy. Checksums are verified before and after search. Vendor acquisitions always use independent copies so SDK caches cannot modify the original acquisition.
+
+For slow shared storage, optionally place disposable search caches on a fast local disk:
+
+```bash
+FUN_PROTEOMICS_SCRATCH=/fast/scratch fun_proteomics --continue /data/my-baf-study
+```
+
+The launcher checks estimated free space and links the already verified mzML inputs. Converted spectra, search tables, logs and checkpoints stay in the project; only mzBIN/IonQuant caches use scratch. Successful searches remove those disposable caches, and completed searches remain reusable without them. Interrupted scratch caches are retained for inspection and their location is recorded in `results/intermediates/search/run/scratch_staging.json`. This changes storage placement, not search settings or the analysis design.

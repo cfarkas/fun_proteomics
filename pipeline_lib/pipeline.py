@@ -252,7 +252,7 @@ def search_properties(args, cfg):
     return properties
 
 
-def stage_search_input(source, target, share_converted=False):
+def stage_search_input(source, target, share_converted=False, allow_symlink=False):
     """Share generated mzML data when safe; keep vendor acquisitions independent."""
     source, target = Path(source), Path(target)
     if share_converted and source.is_file() and source.suffix.lower() == '.mzml':
@@ -262,7 +262,10 @@ def stage_search_input(source, target, share_converted=False):
         except OSError as error:
             if target.exists():
                 raise ValueError('Search staging target already exists: '+str(target)) from error
-            # Cross-filesystem staging and filesystems without hard links use copies.
+            if allow_symlink:
+                target.symlink_to(source.resolve())
+                return 'symlink'
+            # Cross-filesystem staging defaults to independent copies.
     subprocess.run(['cp', '--reflink=auto', '-a', '-L', str(source), str(target)], check=True)
     return 'copy'
 
@@ -297,7 +300,7 @@ def search(args):
         if not marker.exists():
             if target.exists():
                 raise ValueError(f'Incomplete raw copy requires inspection before retry: {target}')
-            staging = stage_search_input(source, target, share_converted)
+            staging = stage_search_input(source, target, share_converted, getattr(args, 'symlink_converted', False))
             original = {str(p.relative_to(source)): p.stat().st_size for p in source.rglob('*') if p.is_file()} if source.is_dir() else {'sha256': digest(source)}
             copied = {str(p.relative_to(target)): p.stat().st_size for p in target.rglob('*') if p.is_file()} if target.is_dir() else {'sha256': digest(target)}
             if original != copied:

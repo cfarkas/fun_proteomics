@@ -109,7 +109,11 @@ def main():
     if not reusable:
         quarantine(searchdir/'run');quarantine(searchdir/'raw')
         print('Starting FragPipe DDA search and MS1 LFQ; log: '+str(searchdir/'run/pipeline.log'),flush=True)
-        with directory(searchdir): search(arguments)
+        from baf_staging import search_staging
+        with search_staging(searchdir, [s['raw_path'] for s in samples], list(frame.raw_path),
+                            os.environ.get('FUN_PROTEOMICS_SCRATCH')) as linked:
+            arguments.symlink_converted = linked
+            with directory(searchdir): search(arguments)
     else: print('Verified completed FragPipe search and LFQ; reusing.',flush=True)
     final=output/'final_results'
     # Publication is atomic. A failed report cannot masquerade as a completed run.
