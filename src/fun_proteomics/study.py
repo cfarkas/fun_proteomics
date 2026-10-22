@@ -417,7 +417,8 @@ def run_study(path,args,workflow,check_only=False):
             paths=[cfg[f] for f in PATH_FIELDS if cfg.get(f) and Path(cfg[f]).is_file()]
             write_json(launch,dict(config_sha256=digest(config),inputs=cli.recorded_files(paths)))
         if cfg['mode']=='baf':
-            command=[*flags,'raw-baf','--config',str(config),'--outdir',str(root)]
+            command=([*flags,'--continue',str(root)] if state else
+                     [*flags,'raw-baf','--config',str(config),'--outdir',str(root)])
         elif state or cfg['mode']=='continue':
             command=[*flags,'--continue',str(run_root(cfg['source_run']) if cfg['mode']=='continue' else project/'results')]
         elif cfg['mode']=='matrix':

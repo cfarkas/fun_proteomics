@@ -90,6 +90,20 @@ class GuidedSetupTests(unittest.TestCase):
         self.assertFalse((path.parent.parent/'results').exists())
         self.assertFalse((path.parent.parent/'.fun_proteomics/launch.json').exists())
 
+    def test_saved_baf_project_uses_recorded_continuation_runtime(self):
+        path,_=study.save(self.cfg,ROOT)
+        cfg=dict(self.cfg,mode='baf');path.write_text(json.dumps(cfg))
+        root=path.parent.parent/'results'
+        state=root/'.fun_proteomics/run.json';state.parent.mkdir(parents=True)
+        state.write_text(json.dumps({'engine':'native-baf','status':'completed','outdir':str(root),
+                                     'r_library':str(self.root/'recorded-R-library')}))
+        args=cli.parser().parse_args(['--print-command','run','--config',str(path)])
+        output=io.StringIO()
+        with patch.object(study,'check',return_value={'summary':'Saved BAF project'}),contextlib.redirect_stdout(output):
+            self.assertEqual(study.run_study(path,args,ROOT),0)
+        self.assertIn('--continue',output.getvalue())
+        self.assertNotIn('raw-baf',output.getvalue())
+
     def test_zero_service_detections_have_valid_json_preview(self):
         import pandas as pd
         p=Path(self.cfg['service_matrix']);frame=pd.read_csv(p)
