@@ -45,3 +45,5 @@ The default closed search uses trypsin, up to two missed cleavages, peptide leng
 MS1 LFQ includes transferred quantifications when MBR is enabled. It is not a count of independently identified proteins. Provider databases, search settings, protein inference, FDR and transfer rules can differ. See [service benchmarking](benchmarking.md).
 
 Only conventional DDA BAF scan modes are supported. bbCID/DIA BAF and profile-only BAF fail explicitly. MGF exports lack the MS1 data needed for this LFQ route. See the [FragPipe input-format guidance](https://fragpipe.nesvilab.org/docs/tutorial_fragpipe.html), [pyBaf2Sql reader](https://github.com/gtluu/pyBaf2Sql), and [TIMSCONVERT methods](https://doi.org/10.1093/bioinformatics/btac419).
+
+Converted mzML files are linked into the search staging folder on the same filesystem to avoid a second full data copy. Other filesystems fall back to a verified copy. Checksums are verified before and after search. Vendor acquisitions always use independent copies so SDK caches cannot modify the original acquisition.

@@ -74,6 +74,33 @@ class BafTests(unittest.TestCase):
         self.assertEqual(list(genes.Gene),['G1'])
         self.assertEqual(list(genes.S1),[2])
         self.assertEqual(len(pd.read_csv(output/'quality_control/excluded_peptide_gene_assignments.csv')),1)
+    def test_converted_staging_reuses_data_and_checks_search_integrity(self):
+        from pipeline import stage_search_input, verify_staged_mzml, digest
+        source=self.root/'generated.mzML';target=self.root/'staged.mzML'
+        source.write_bytes(b'converted spectra');expected=digest(source)
+        self.assertEqual(stage_search_input(source,target,True),'hardlink')
+        self.assertTrue(source.samefile(target))
+        verify_staged_mzml(source,target,expected)
+        target.write_bytes(b'unexpected change')
+        with self.assertRaisesRegex(ValueError,'changed during search'):
+            verify_staged_mzml(source,target,expected)
+    def test_staging_falls_back_across_filesystems_and_never_links_vendor_data(self):
+        from pipeline import stage_search_input
+        from unittest.mock import patch
+        source=self.root/'generated.mzML';target=self.root/'staged.mzML'
+        source.write_bytes(b'converted spectra')
+        with patch('pipeline.os.link',side_effect=OSError('cross-device link')):
+            self.assertEqual(stage_search_input(source,target,True),'copy')
+        self.assertFalse(source.samefile(target));self.assertEqual(source.read_bytes(),target.read_bytes())
+        raw=self.root/'original.d';raw.mkdir();(raw/'analysis.baf').write_bytes(b'vendor data')
+        copied=self.root/'copied.d'
+        with patch('pipeline.os.link',side_effect=AssertionError('must not link vendor data')):
+            self.assertEqual(stage_search_input(raw,copied,True),'copy')
+        (copied/'analysis.baf').write_bytes(b'vendor cache changes')
+        self.assertEqual((raw/'analysis.baf').read_bytes(),b'vendor data')
+        with self.assertRaisesRegex(ValueError,'already exists'):
+            stage_search_input(source,target,True)
+
     def test_vendor_dependencies_and_no_mixed_acquisition(self):
         raw=self.root/'sample.d';raw.mkdir()
         for name in ['analysis.baf','analysis.baf_xtr','Calibrator.ami','analysis.sqlite']:(raw/name).write_text('test')
