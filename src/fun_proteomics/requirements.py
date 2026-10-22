@@ -42,6 +42,10 @@ def readiness(project,args,mode='matrix',statistics=True):
                 if result.returncode: missing.append('R packages: '+(result.stdout.strip() or 'Rscript check failed'))
             except (OSError,subprocess.SubprocessError) as error: missing.append('R check: '+str(error))
         details['Rscript']=r
+    if mode=='baf':
+        reader=project/'.runtime/baf-python/bin/python'
+        if not reader.is_file(): missing.append('BAF reader (install --baf or setup --python PATH)')
+        if not shutil.which('java',path=env.get('PATH')): missing.append('Java')
     if mode in ('dia','dda'):
         try: details['nextflow']=nextflow_binary(project,args,env)
         except ValueError: missing.append('Nextflow')
@@ -81,6 +85,13 @@ def doctor(project,args):
 
 def install(project,args):
     from .cli import environment
+    if getattr(args,'baf',False):
+        if args.conda or args.r_only: raise ValueError('Run --baf separately from --conda/--r-only')
+        target=project/'.runtime/baf-python'
+        subprocess.run([sys.executable,'-m','venv',str(target)],check=True)
+        SDK_COMMIT='b9fdcca8e78693245af304a8561f5abf8e18e95c'
+        return subprocess.run([str(target/'bin/python'),'-m','pip','install','numpy>=1.26,<3','pandas>=2.2,<3',
+            'psims==1.3.5','git+https://github.com/gtluu/pyBaf2Sql@'+SDK_COMMIT]).returncode
     if args.conda and args.r_only: raise ValueError('Choose --conda or --r-only')
     if not args.conda and not args.r_only: raise ValueError('Use install --conda (full runtime) or install --r-only (existing R)')
     env=environment(project,args)

@@ -51,6 +51,7 @@ def build_matrix_catalog(output):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     rows, seen = [], set()
+    abundance_mode = 'DDA-BAF' if (output/'quality_control/raw_search_provenance.json').is_file() else 'DIA/import'
 
     def add(path, cohort, mode, feature, measure, source=None):
         csv_path, tsv_path = export_matrix_formats(path)
@@ -84,11 +85,11 @@ def build_matrix_catalog(output):
     for path in matrix_files(output/'matrices'):
         parts = path.relative_to(output/'matrices').parts
         add(path, parts[0] if len(parts) > 1 else '',
-            parts[1] if len(parts) > 2 and parts[1] in ('dda', 'ddaplus') else 'DIA/import',
+            parts[1] if len(parts) > 2 and parts[1] in ('dda', 'ddaplus') else abundance_mode,
             path.name.split('_')[0], 'intensity' if 'intensit' in path.name else 'spectral_count')
     for path in sorted((output/'differential_expression').rglob('log2_intensities.csv')):
         parts = path.relative_to(output/'differential_expression').parts
-        add(path, parts[0] if len(parts) > 2 else '', 'DIA/import', parts[-2], 'log2_intensity')
+        add(path, parts[0] if len(parts) > 2 else '', abundance_mode, parts[-2], 'log2_intensity')
     for path in sorted((output/'differential_expression').rglob('paired_log2_differences.csv')):
         parts = path.relative_to(output/'differential_expression').parts
         add(path, parts[0] if len(parts)>3 else '', 'Paired/import', parts[-3], 'paired_log2_difference')
@@ -107,7 +108,7 @@ def build_matrix_catalog(output):
     (output/'MATRICES.html').write_text('<!doctype html><meta charset="utf-8"><title>Count and abundance matrices</title>'
         '<style>body{font:16px system-ui;margin:3rem;color:#173d45}td,th{padding:.7rem;border-bottom:1px solid #ccd;text-align:left}a{color:#075c8c}</style>'
         '<h1>Count and abundance matrices</h1><p>Every matrix has matching <b>CSV and TSV</b> versions. Identifiers, values and missing cells are identical; only the delimiter changes. '
-        'Primary matrices are in <b>matrices/</b>. DDA counts are discrete spectral counts; DIA intensities are continuous quantities. Missing intensities stay blank.</p>'
+        'Primary matrices are in <b>matrices/</b>. DDA counts are discrete spectral counts; LFQ and DIA intensities are continuous quantities. Missing intensities stay blank.</p>'
         '<p>Index: <a href="MATRICES.csv">CSV</a> · <a href="MATRICES.tsv">TSV</a> · <a href="START_HERE.html">All results</a></p>'
         '<table><thead><tr><th>Cohort</th><th>Search</th><th>Feature</th><th>Measure</th><th>CSV</th><th>TSV</th><th>Location</th></tr></thead><tbody>' + body + '</tbody></table>')
     dashboard = output/'START_HERE.html'

@@ -25,14 +25,14 @@ def identity(cfg, cohort, mode, properties, database_sha256, versions):
     return {'version': 1, 'cohort': cohort, 'mode': mode,
             'analysis': cfg.get('proteomics', {}).get('analysis', 'global-label-free'),
             'samples': [{'sample_id': s['sample_id'], 'raw_path': s['raw_path'],
-                         'audit': audit[s['sample_id']]} for s in samples],
+                         'audit': audit[s['sample_id']], **({'biological_sample':s['biological_sample']} if s.get('biological_sample') else {})} for s in samples],
             'database_sha256': database_sha256, 'properties': normalized_properties(properties),
             'tools': {k: v for k, v in versions.items() if k != 'runtime'}}
 
 
 def required_outputs(root, samples):
     paths = [root/'combined_protein.tsv', root/'combined_peptide.tsv']
-    paths.extend(root/s['sample_id']/'psm.tsv' for s in samples)
+    paths.extend(root/(s.get('biological_sample') or s['sample_id'])/'psm.tsv' for s in samples)
     if not (root/'SEARCH_COMPLETE').is_file() or (root/'STUB_NOT_SCIENTIFIC_RESULTS').exists():
         raise ValueError('Search is incomplete or synthetic.')
     if any(not p.is_file() or p.stat().st_size == 0 for p in paths):

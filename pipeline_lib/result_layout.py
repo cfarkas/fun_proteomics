@@ -159,6 +159,12 @@ def publish_results(out, preserve_original=False, search_summary=None):
                 if path.is_file():
                     target = Path('optional_analyses/gene_counts/counts')/segment(cohort)/slug if gene else prefix
                     copy(path, target/'raw'/path.name, title=cohort+' · '+mode+' · '+label+' · raw counts', category='Gene count matrices' if gene else 'Main count matrices')
+            for filename in ('protein_intensity.tsv','protein_maxlfq_intensity.tsv'):
+                path=raw/filename
+                if path.is_file():
+                    copy(path,Path('matrices')/segment(cohort)/slug/filename,
+                         title=cohort+' · '+mode+' · '+filename.removesuffix('.tsv').replace('_',' '),
+                         category='Protein abundance matrices')
             for name, source in [('normalized',out/'matrices'/cohort/slug), ('zscore',out.parent/'zscore'/cohort/slug)]:
                 for path in sorted(source.glob('*.csv')):
                     gene = path.name.startswith(('gene_', 'modification_gene_'))
@@ -216,6 +222,7 @@ def publish_results(out, preserve_original=False, search_summary=None):
                 feature_type=kind,method=method,test_type='interaction',comparison='Combination − drug A − drug B + control',
                 reported_features=reported,tested_features=tested,significant_features=significant,
                 status=status(tested,significant,reported),fdr=drug_settings.get('fdr',.05),full_results=full,significant_results=sig))
+        copy_tree(out/'benchmark',Path('benchmark'),title_prefix='Service benchmark',category='Service benchmarks')
         # The selected final files are copied unchanged. Remaining supported outputs are model records.
         for path in sorted(out.rglob('*')):
             if not path.is_file() or path.resolve() in copied:
@@ -255,6 +262,8 @@ Open **START_HERE.html** for the study overview, searchable main and optional te
 - **main_results/differential_expression/**: primary protein comparisons first, followed by supporting peptide and selected protein-modification tests. Each method has an all-results table and a significant-results table.
 - **main_results/counts/**: per-cohort/search raw counts, normalized CPM, log2 CPM and visualization z-scores.
 - **main_results/quality_control/**: sample assignments, coverage and statistical testing summaries.
+- **matrices/**: direct links to CSV/TSV counts and available protein intensity/MaxLFQ matrices.
+- **benchmark/**: matched service detection counts, gains/losses, complete-group and accession audits, and sample mappings.
 - **optional_analyses/gene_counts/**: selected gene counts, normalized matrices, z-scores and comparisons, including selected gene-modification tests. Gene comparisons use DEPs settings and separate models/FDR; they do not change protein counts or protein statistics.
 - **optional_analyses/statistics/**: separate peptide and isoform count comparisons and their matrices.
 - **optional_analyses/drug_interaction/**: edgeR, limma-voom and/or Monte Carlo interaction results as selected.

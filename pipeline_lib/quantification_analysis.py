@@ -50,7 +50,15 @@ def write_dashboard(output, title='Proteomics results'):
         if not union.empty:
             row = union.iloc[0]
             folder = path.parent.relative_to(output).as_posix()
-            sections.append('<h2>Service detection benchmark</h2><p>Unique protein groups across matched samples: pipeline <b>'+str(int(row.pipeline_detected))+
+            audit_path=path.parent/'group_completeness_audit.csv'
+            if audit_path.is_file():
+                audit=pd.read_csv(audit_path).set_index('source')
+                sections.append('<h2>All reported positive groups</h2><p>Before excluding incomplete group identifiers: pipeline <b>'+str(int(audit.loc['pipeline','observed_groups']))+
+                    '</b>, service <b>'+str(int(audit.loc['service','observed_groups']))+'</b>. Incomplete positive groups excluded from exact matching: pipeline '+
+                    str(int(audit.loc['pipeline','observed_incomplete_groups']))+', service '+str(int(audit.loc['service','observed_incomplete_groups']))+
+                    '.</p><p><a href="'+quote(folder+'/reported_detection_summary.csv')+'">All reported detection counts per sample</a> · <a href="'+quote(folder+'/group_completeness_audit.csv')+'">Completeness audit</a> · <a href="'+quote(folder+'/accession_overlap_summary.csv')+'">Supporting accession overlap (not independent protein IDs)</a></p>')
+
+            sections.append('<h2>Service detection benchmark</h2><p>Complete protein groups eligible for exact matching: pipeline <b>'+str(int(row.pipeline_detected))+
                 '</b>, service <b>'+str(int(row.service_detected))+'</b>; shared '+str(int(row.shared))+', pipeline-only '+str(int(row.pipeline_only))+
                 ', service-only '+str(int(row.service_only))+'. Net difference: <b>'+format(int(row.net_difference),'+d')+'</b>.</p><p><a href="'+
                 quote(folder+'/detection_summary.csv')+'">Per-sample counts and differences</a> · <a href="'+quote(folder+'/protein_membership.csv')+

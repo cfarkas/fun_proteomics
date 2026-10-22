@@ -12,6 +12,8 @@ You can also reopen the browser with `setup --project /data/my-study` and select
 
 For guided projects, the launcher checks saved settings and recorded input hashes before entering the existing continuation engine. Native deliveries are verified against `OUTPUT_SHA256SUMS` and their input provenance. Valid completed outputs are reused without recomputing the analysis. Missing or altered native reports are rebuilt into `continuations/<timestamp>/`, preserving previous attempts. The report and matrix shortcuts are updated after successful recovery.
 
+Native BAF checks source components, calibration inputs and converted mzML hashes before reusing spectra. Complete search checkpoints verify settings, database, tools and required reports. Damaged conversions are regenerated; incomplete searches and invalid reports are preserved under `previous_attempts/` before rebuilding. Source-data or analysis-setting changes require a new project. See [raw BAF](raw_baf.md).
+
 Nextflow projects reuse the recorded session and work cache. Matching tasks are cached; unfinished tasks run. The work directory and controller cache are needed for this form of reuse. A damaged or missing cache requires a fresh raw run; it is not treated as a completed spectrum search.
 
 For completed DIA searches, reuse verifies task completion, report checksums, configuration, sample assignments and readable Parquet content. Raw acquisition metadata are checked; changed components with recorded hashes are hashed again. Add `--hash-raw` to request a full raw-file hash check. A newly created raw hash baseline cannot establish historical identity with a run that never recorded one.

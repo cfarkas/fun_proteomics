@@ -19,9 +19,9 @@ from .continuation import read_json, write_json, run_root
 from .project import digest
 
 FORMAT = 1
-MODES = ('matrix', 'dia', 'dda', 'continue')
+MODES = ('matrix', 'dia', 'dda', 'baf', 'continue')
 PATH_FIELDS = ('matrix', 'samples', 'fasta', 'service_matrix', 'service_samples', 'source_run',
-               'study_config', 'raw_root', 'msfragger_zip', 'ionquant_zip', 'diatracer_zip')
+               'study_config', 'raw_root', 'msfragger_zip', 'ionquant_zip', 'diatracer_zip', 'python', 'fragpipe_zip')
 FIELDS = set(PATH_FIELDS) | {'fun_proteomics_project', 'project', 'mode', 'independent_samples',
          'differential', 'quantity', 'normalization', 'fdr', 'min_replicates', 'cpus', 'memory_gib',
          'python', 'sample_rows', 'assignment_board', 'contains_decoys', 'dda_plus', 'sheet', 'service_sheet', 'subject_column'}
@@ -32,7 +32,7 @@ def add_commands(sub):
     p.add_argument('--project', '--outdir', dest='study_project', help='Output/project folder containing config/, logs/, results/ and matrix shortcuts')
     p.add_argument('--sheet', help='Excel worksheet; detect automatically when omitted')
     p.add_argument('--service-sheet', help='Excel worksheet for the service benchmark')
-    p.add_argument('--subject-column', help='Donor column for paired matrix comparisons; use one quantity per donor/condition')
+    p.add_argument('--subject-column', help='Donor column for paired matrix or BAF comparisons; one biological sample per donor/condition')
     p.add_argument('--terminal', action='store_true', help='Answer questions in this terminal')
     p.add_argument('--non-interactive', action='store_true', help='Use explicit flags without prompting')
     p.add_argument('--run', action='store_true', help='Check and run after saving; resume if already saved')
@@ -78,14 +78,14 @@ def normalize(data):
     if cfg['fun_proteomics_project'] != FORMAT:
         raise ValueError('Unsupported saved project format')
     if cfg['mode'] not in MODES:
-        raise ValueError('Choose matrix, dia, dda or continue')
+        raise ValueError('Choose matrix, dia, dda, baf or continue')
     for field in ('independent_samples','differential'):
         if not isinstance(cfg[field],bool): raise ValueError(field+' must be true or false')
     for field in ('project', *PATH_FIELDS):
         if cfg.get(field):
             value = str(cfg[field]).strip()
             if any(c in value for c in '\n\r\t'): raise ValueError('Paths cannot contain tabs or line breaks')
-            cfg[field] = str(Path(value).expanduser().resolve())
+            cfg[field] = str(Path(value).expanduser().absolute() if field=='python' else Path(value).expanduser().resolve())
     if not cfg.get('project'): raise ValueError('Choose a project folder')
     for field in ('sheet', 'service_sheet', 'subject_column'):
         if cfg.get(field):
@@ -93,7 +93,7 @@ def normalize(data):
             cfg[field]=cfg[field].strip()
         else: cfg.pop(field,None)
     if cfg.get('subject_column'):
-        if cfg['mode']!='matrix': raise ValueError('Paired comparisons currently use matrix imports; import aggregated quantities first')
+        if cfg['mode'] not in ('matrix','baf'): raise ValueError('Paired comparisons use matrix imports or native BAF; import aggregated quantities for other acquisition types')
         if cfg['independent_samples']: raise ValueError('Choose either independent samples or a paired subject column')
     if cfg['quantity'] not in ('auto','value','maxlfq','intensity','spectral_count'):
         raise ValueError('Unsupported quantity type')
@@ -135,7 +135,7 @@ def samples_for(cfg, workflow):
         if 'replicate' in frame: frame['source_replicate']=frame['replicate']
         # The user has explicitly confirmed independence; retain the original labels.
         frame['replicate']=[str(i+1) for i in range(len(frame))]
-    if cfg['mode'] in ('dia','dda'):
+    if cfg['mode'] in ('dia','dda','baf'):
         if 'condition' not in frame or frame.condition.eq('').any(): raise ValueError('Assign a condition to every raw sample')
         if 'replicate' not in frame: frame['replicate']=[str(i+1) for i in range(len(frame))]
         if 'raw_path' not in frame: raise ValueError('Raw analysis sample tables need raw_path')
@@ -173,7 +173,13 @@ def raw_study(cfg, samples, workflow):
             base['dia']['service_matrices']={next(iter(groups)):cfg['service_matrix']}
         return base
     if cfg.get('service_matrix'):
-        raise ValueError('For DDA, import the resulting quantity matrix with its service table in a separate matrix project')
+        groups=set(samples.cohort)
+        if len(groups)!=1: raise ValueError('Use one cohort per guided DDA service benchmark')
+        from .assignments import service_samples_for
+        provider=service_samples_for(cfg,samples,workflow)
+        base['service_quantification']={next(iter(groups)):dict(matrix=cfg['service_matrix'],
+             sheet=cfg.get('service_sheet'), samples=provider.to_dict('records'))}
+
     base.update(modes=['DDA','DDA+'] if cfg.get('dda_plus') else ['DDA'], organism=None,
                 database={'fasta':cfg.get('fasta'),'sha256':digest(cfg['fasta']),'contains_decoys':True},
                 tools={key:cfg[key] for key in ('msfragger_zip','ionquant_zip','diatracer_zip') if cfg.get(key)},
@@ -229,12 +235,15 @@ def check(cfg, workflow):
     if cfg['differential'] and not cfg['independent_samples'] and not cfg.get('subject_column'):
         raise ValueError('Confirm that each sample is an independent biological replicate. For paired matrix data, specify a donor/subject column instead; choose matrices only to omit testing.')
     frame=samples_for(cfg,workflow)
+    if mode=='baf':
+        from .baf_study import check as check_baf
+        return check_baf(cfg,frame,workflow)
     options=differential_options(dict(enabled=cfg['differential'],comparisons='all_pairwise',
                   fdr=cfg['fdr'],min_replicates=cfg['min_replicates'],normalization=cfg['normalization'], **({'subject_column':cfg['subject_column']} if cfg.get('subject_column') else {})))
     for key in ('sample_type','cohort'):
         if mode=='matrix' and key in frame and frame[key].nunique()>1:
             raise ValueError('Use a separate matrix project for each '+key)
-    groups=frame.groupby('cohort') if mode in ('dia','dda') else [('study',frame)]
+    groups=frame.groupby('cohort') if mode in ('dia','dda','baf') else [('study',frame)]
     pairs=0; conditions={}
     for name, group in groups:
         validate_design_rows(group.to_dict('records'),options)
@@ -290,6 +299,10 @@ def check(cfg, workflow):
         decoys={h.split()[0][4:] for h,_ in records if h.startswith('rev_')}
         if not targets or targets!=decoys or not any(h.startswith('contam_') for h in targets):
             raise ValueError('DDA setup expects a target/decoy search FASTA containing rev_ decoys; use the advanced raw editor to prepare one')
+        if cfg.get('service_matrix'):
+            from quantification import load_matrix
+            from .assignments import service_samples_for
+            load_matrix(cfg['service_matrix'],service_samples_for(cfg,frame,workflow),sheet=cfg.get('service_sheet'))
         for path in frame.raw_path:
             raw=Path(path)
             if raw.suffix.lower()!='.d' or any(not (raw/n).is_file() or not (raw/n).stat().st_size for n in ('analysis.tdf','analysis.tdf_bin')):
@@ -390,7 +403,7 @@ def run_study(path,args,workflow,check_only=False):
     root,state=result_location(cfg)
     if cfg['mode']!='continue' and not state and not getattr(args,'print_command',False):
         from .requirements import readiness
-        ready=readiness(workflow,args,cfg['mode'],cfg['differential'] or cfg['mode']=='dda')
+        ready=readiness(workflow,args,'matrix' if cfg['mode']=='baf' else cfg['mode'],cfg['differential'] or cfg['mode']=='dda')
         if ready['missing']:
             raise ValueError('Missing tools: '+', '.join(ready['missing'])+'. Run fun_proteomics install --conda, then doctor --mode '+cfg['mode'])
     with locked(project):
@@ -403,7 +416,9 @@ def run_study(path,args,workflow,check_only=False):
         elif not getattr(args,'print_command',False):
             paths=[cfg[f] for f in PATH_FIELDS if cfg.get(f) and Path(cfg[f]).is_file()]
             write_json(launch,dict(config_sha256=digest(config),inputs=cli.recorded_files(paths)))
-        if state or cfg['mode']=='continue':
+        if cfg['mode']=='baf':
+            command=[*flags,'raw-baf','--config',str(config),'--outdir',str(root)]
+        elif state or cfg['mode']=='continue':
             command=[*flags,'--continue',str(run_root(cfg['source_run']) if cfg['mode']=='continue' else project/'results')]
         elif cfg['mode']=='matrix':
             samples=samples_for(cfg,workflow);sheet=project/'config/samples.csv'
@@ -455,9 +470,6 @@ def run_study(path,args,workflow,check_only=False):
 def scan(folder):
     root=Path(folder).expanduser().resolve()
     if not root.is_dir(): raise ValueError('Select an existing raw-data folder')
-    baf=[p for p in root.iterdir() if p.is_dir() and p.suffix.lower()=='.d' and (p/'analysis.baf').is_file() and not (p/'analysis.tdf').is_file()]
-    if baf:
-        raise ValueError(f'{len(baf)} Bruker BAF acquisitions detected (Impact/QTOF, not PASEF). Choose Quantification matrix and select the MaxQuant LFQ workbook or proteinGroups.txt. MGF exports do not contain the MS1 data needed to regenerate LFQ; raw BAF searching is not implemented.')
     rows=[]
     for path in sorted(root.iterdir()):
         if path.is_dir() and path.suffix.lower()=='.d' and 'BLANK' not in path.name.upper():

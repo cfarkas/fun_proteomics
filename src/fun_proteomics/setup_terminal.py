@@ -53,9 +53,10 @@ def setup(args,workflow):
             print('2. DIA-PASEF raw acquisitions')
             print('3. DDA-PASEF raw acquisitions')
             print('4. Continue an existing run folder')
+            print('5. Raw BAF (Impact/QTOF DDA, native Python)')
             value=ask('Analysis','1')
-            cfg['mode']={'1':'matrix','2':'dia','3':'dda','4':'continue'}.get(value,value)
-            if cfg['mode'] not in study.MODES: raise ValueError('Choose 1, 2, 3 or 4')
+            cfg['mode']={'1':'matrix','2':'dia','3':'dda','4':'continue','5':'baf'}.get(value,value)
+            if cfg['mode'] not in study.MODES: raise ValueError('Choose 1, 2, 3, 4 or 5')
         mode=cfg['mode']
         fields=['source_run'] if mode=='continue' else ['study_config'] if cfg.get('study_config') else ['matrix','samples'] if mode=='matrix' else ['raw_root','samples','fasta']
         labels={'source_run':'Existing run folder','matrix':'Protein matrix (CSV, TSV or XLSX)',
@@ -69,18 +70,18 @@ def setup(args,workflow):
             if interactive:
                 if mode=='matrix' and not cfg.get('fasta'):
                     cfg['fasta']=ask('Matching FASTA for missing gene symbols (optional)')
-                if mode!='dda' and not cfg.get('service_matrix'):
+                if not cfg.get('service_matrix'):
                     cfg['service_matrix']=ask('Service matrix for a detection benchmark (optional)')
                 if not args.no_differential:
                     cfg['differential']=yes('Compare every condition against every other condition?',True)
                 if cfg['differential'] and not cfg['independent_samples'] and not cfg.get('subject_column'):
                     cfg['independent_samples']=yes('Does each sample come from a different patient or biological replicate?')
-                    if not cfg['independent_samples'] and mode=='matrix':
+                    if not cfg['independent_samples'] and mode in ('matrix','baf'):
                         cfg['subject_column']=ask('Donor/subject column for paired comparisons', 'subject', required=True)
-                if mode=='dda':
+                if mode in ('dda','baf'):
                     for key in ('msfragger_zip','ionquant_zip','diatracer_zip'):
                         if not cfg.get(key): cfg[key]=ask('Registered '+key+' archive',required=True)
-                if mode in ('dia','dda'):
+                if mode in ('dia','dda','baf'):
                     cfg['cpus']=int(ask('CPU threads',str(cfg['cpus'])))
                     cfg['memory_gib']=int(ask('Memory budget (GiB)',str(cfg['memory_gib'])))
         path,report=study.save(cfg,workflow)

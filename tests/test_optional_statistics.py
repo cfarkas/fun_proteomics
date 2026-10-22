@@ -156,7 +156,25 @@ class OptionalStatisticsTests(unittest.TestCase):
         shutil.copytree(out/'optional_analyses/peptide_isoforms/cells/dda',evidence)
         (evidence/'settings.json').write_text(json.dumps({'database_sha256':digest(fasta),
             'peptide_counts_sha256':digest(report/'peptide_spectral_counts.csv')}))
+        # Benchmark staged LFQ reports before Nextflow publishes any raw search folder.
+        stats.write_table(report/'protein_maxlfq_intensity.tsv', ['Protein',*self.ids],
+                          [dict(Protein='P1',**{key:100 for key in self.ids})])
+        text=(report/'protein_maxlfq_intensity.tsv').read_text()
+        (report/'protein_maxlfq_intensity.tsv').write_text(text.replace(',', '\t'))
+        service=self.root/'service.csv'
+        aliases=['provider_'+key for key in self.ids]
+        stats.write_table(service,['Protein.Group',*aliases],
+                          [dict({'Protein.Group':group},**{key:100 for key in aliases}) for group in ['P1','P2']])
+        self.plan['service_quantification']={'cells':{'matrix':str(service),'sha256':digest(service),
+            'samples':[{'sample_id':key,'service_sample':alias} for key,alias in zip(self.ids,aliases)]}}
         assemble(self.plan, [report], out, os.environ.get('PROTEOMICS_RSCRIPT', 'Rscript'), ROOT/'.runtime/R-library')
+        benchmark=out/'benchmark/cells/dda'
+        summary=stats.read_table(benchmark/'detection_summary.csv')[1][-1]
+        self.assertEqual(summary['shared'],'1')
+        self.assertEqual(summary['service_only'],'1')
+        self.assertEqual(summary['net_difference'],'-1')
+        self.assertTrue((benchmark/'reported_detection_summary.tsv').is_file())
+
         self.assertTrue((out/'FINAL_RESULTS_COMPLETE').is_file())
         self.assertFalse((out/'differential').exists())
         index=stats.read_table(out/'results_index.csv')[1]

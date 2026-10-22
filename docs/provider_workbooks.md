@@ -48,6 +48,6 @@ LFQ values must be linear, finite and nonnegative. Log-transformed or imputed re
 
 ## Impact / QTOF BAF acquisitions
 
-A `.d` extension does not identify the acquisition type. `analysis.baf` files from Bruker Impact/QTOF instruments differ from timsTOF `analysis.tdf` PASEF data. Setup detects this distinction and directs BAF studies to the supported provider-matrix route. **Raw BAF re-search is not implemented.** MGF exports can support identification searches, but lack the MS1 data needed for LFQ quantification; see the [FragPipe input guide](https://fragpipe.nesvilab.org/docs/tutorial_fragpipe).
+A `.d` extension does not identify the acquisition type. `analysis.baf` files from Bruker Impact/QTOF instruments differ from timsTOF `analysis.tdf` PASEF data. Choose Raw BAF in setup to re-search the acquisitions, or choose Quantification matrix to analyze the delivered workbook. **Raw BAF re-search is available as a separate native workflow; see [Raw BAF](raw_baf.md).** MGF exports can support identification searches, but lack the MS1 data needed for LFQ quantification; see the [FragPipe input guide](https://fragpipe.nesvilab.org/docs/tutorial_fragpipe).
 
 This route analyzes delivered quantities and does not claim new identifications or better detection than the provider. Detection gains/losses require a separate, compatible quantification matrix with explicit sample matching.

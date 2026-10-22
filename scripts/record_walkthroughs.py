@@ -107,7 +107,7 @@ def browser_clip(browser,args,env,raw=False):
             page.locator('#scan').click();page.wait_for_function('document.querySelectorAll(".sample").length===4')
             clip.say('Choose DIA-PASEF and scan your raw-data folder. This demo contains synthetic acquisition metadata only.',6)
             for i in range(4):drag_sample(page,'Sample'+str(i+1),'Control' if i<2 else 'Treatment');page.wait_for_timeout(400)
-            clip.say('Drag acquisition cards into Control or Treatment, just as in OncoTracer. Each card also has a condition dropdown.',7)
+            clip.say('Drag acquisition cards into Control or Treatment. Each card also has a condition dropdown.',7)
             drag_sample(page,'Sample1','')
             clip.say('Move a card back to Unassigned to exclude it. Here we put it back into Control before saving.',6)
             drag_sample(page,'Sample1','Control')
@@ -159,6 +159,66 @@ def browser_clip(browser,args,env,raw=False):
         try:process.wait(timeout=10)
         except subprocess.TimeoutExpired:process.terminate();process.wait(timeout=5)
         process.stdout.close()
+
+
+def baf_clip(browser,args,env):
+    """Demonstrate the real setup UI; synthetic files are never searched."""
+    if not args.baf_tool_config:
+        raise ValueError('BAF setup recording needs --baf-tool-config with local registered archive and reader paths')
+    tools=json.loads(Path(args.baf_tool_config).read_text())
+    name='raw-baf-setup';folder=args.work_dir/name;folder.mkdir()
+    raw=folder/'raw';raw.mkdir();local=folder/'tools';local.mkdir()
+    names=[]
+    for donor in ('D1','D2'):
+        for condition in ('Control','TreatmentA','TreatmentB','TreatmentC'):
+            for injection in (1,2):
+                sample=f'{donor}_{condition}_R{injection}';names.append((sample,donor,condition))
+                acquisition=raw/(sample+'.d');acquisition.mkdir()
+                (acquisition/'analysis.baf').write_bytes(b'SYNTHETIC SETUP DEMO - NO SPECTRA')
+    fasta=folder/'search.fasta'
+    fasta.write_text('>sp|P00001|DEMO GN=GENE_A\nMPEPTIDEK\n>rev_sp|P00001|DEMO GN=GENE_A\nKEDITPEPM\n>contam_DEMO\nMPEPTIDEK\n>rev_contam_DEMO\nKEDITPEPM\n')
+    for field in ('msfragger_zip','ionquant_zip','diatracer_zip'):
+        (local/(field+'.zip')).symlink_to(Path(tools[field]).absolute())
+    (local/'reader').symlink_to(Path(tools['python']).absolute().parent.parent,target_is_directory=True)
+    process,url=launch(args,folder,env);context=None
+    try:
+        context=browser.new_context(viewport={'width':1400,'height':1040},record_video_dir=str(args.output/'capture'),record_video_size={'width':1400,'height':1040})
+        page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+        page.goto(url);page.wait_for_function('document.getElementById("project").value.length>0')
+        clip=Clip(page,name,'BAF setup · synthetic acquisition placeholders · no spectrum search',args.output)
+        clip.say('Choose your output folder. For raw BAF, first install the reader with fun_proteomics install --baf.',6)
+        page.locator('input[name=mode][value=baf]').check();page.locator('#raw_root').fill(str(raw));page.locator('#discover').click()
+        page.wait_for_function('document.querySelectorAll(".sample").length===16')
+        field=page.get_by_role('textbox',name='Rename condition Treatment',exact=True);field.fill('TreatmentA');field.press('Tab')
+        for condition in ('TreatmentB','TreatmentC'):
+            page.locator('#new-condition').fill(condition);page.locator('#add-condition').click()
+        for sample,donor,condition in names:
+            if condition in ('Control','TreatmentA'): drag_sample(page,sample,condition)
+            else: page.get_by_label('Condition for '+sample,exact=True).select_option(condition)
+            page.get_by_label('Biological sample for '+sample,exact=True).fill(donor+'_'+condition)
+        clip.say('Drag acquisitions into conditions or use each card’s dropdown. Give technical injections the same biological sample ID so they are quantified together.',8)
+        page.locator('#next').click();page.locator('#paired_samples').check()
+        clip.say('Select paired comparisons when each donor contributes multiple conditions. Four conditions produce six comparisons.',6)
+        page.locator('[data-step="1"]').click()
+        for sample,donor,condition in names:page.get_by_label('Donor for '+sample,exact=True).fill(donor)
+        clip.say('Enter the donor ID on every card. Technical injections do not increase the number of biological replicates.',7)
+        page.locator('#next').click();page.locator('#fasta').fill(str(fasta))
+        for field in ('msfragger_zip','ionquant_zip','diatracer_zip'):
+            page.locator('#'+field).fill(str(local/(field+'.zip')))
+        page.locator('#python').fill(str(local/'reader/bin/python'))
+        clip.say('Choose a target/decoy FASTA with gene annotations and your registered search tools. Add a service matrix to benchmark detections.',7)
+        page.locator('#check').click();page.wait_for_function('!document.getElementById("check").disabled',timeout=60000)
+        assert '6 condition pairs' in page.locator('#preview').inner_text(),page.locator('#message').inner_text()
+        page.locator('#preview').scroll_into_view_if_needed()
+        clip.say('Check: sixteen technical injections become eight biological samples. Donor pairing is preserved for all six contrasts.',7)
+        page.locator('#save').click();page.wait_for_function('!document.getElementById("run").disabled',timeout=60000)
+        clip.say('Settings are saved. With real acquisitions, Run / continue starts conversion, search, LFQ and reporting. Later use --continue with this folder.',8)
+        clip.say('This is a setup demonstration only. Placeholder files contain no spectra and are never searched.',6)
+        assert not (folder/'study/results').exists() and not errors,errors
+        return clip.finish(context)
+    finally:
+        if context:context.close()
+        process.send_signal(signal.SIGINT);process.wait(timeout=15);process.stdout.close()
 
 
 def terminal_capture(args,folder,env):
@@ -230,7 +290,8 @@ def main():
     parser.add_argument('--work-dir',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--browser-path',help='Optional existing Chromium executable')
-    parser.add_argument('--only',choices=['browser','terminal','raw'])
+    parser.add_argument('--only',choices=['browser','terminal','raw','baf'])
+    parser.add_argument('--baf-tool-config',help='Local JSON containing registered archive and reader paths for the optional BAF setup video')
     args=parser.parse_args();args.work_dir=args.work_dir.resolve();args.output=args.output.resolve()
     args.work_dir.mkdir(parents=True,exist_ok=True);args.output.mkdir(parents=True,exist_ok=True)
     env=os.environ.copy();env.pop('PYTHONPATH',None)
@@ -244,6 +305,7 @@ def main():
             if args.only in (None,'browser'):output.append(browser_clip(browser,args,env))
             if args.only in (None,'terminal'):output.append(terminal_clip(browser,args,env))
             if args.only in (None,'raw'):output.append(browser_clip(browser,args,env,raw=True))
+            if args.only=='baf':output.append(baf_clip(browser,args,env))
         finally:browser.close()
     metadata={'version':version,'input_kind':'synthetic only','recorder_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'clips':output}
     (args.output/('recording-'+(args.only or 'all')+'.json')).write_text(json.dumps(metadata,indent=2)+'\n')

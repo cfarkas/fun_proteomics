@@ -32,6 +32,7 @@ jobs:
           python tests/run_package_smoke.py
           python -m unittest discover -s tests -p test_guided_setup.py -v
           python tests/run_guided_smoke.py
+          python -m unittest discover -s tests -p test_baf_workflow.py -v
       - uses: actions/upload-artifact@v4
         with:
           name: python-distributions

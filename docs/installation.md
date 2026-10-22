@@ -21,6 +21,9 @@ Run a mode-specific dependency check:
 fun_proteomics doctor --mode matrix
 fun_proteomics doctor --mode dia
 fun_proteomics doctor --mode dda
+# For conventional Bruker DDA BAF:
+fun_proteomics install --baf
+fun_proteomics doctor --mode baf
 ```
 
 `doctor --json` gives machine-readable output and returns a nonzero exit code for missing dependencies. Raw input checks also validate selected acquisitions, reference files and registered archives.
@@ -46,7 +49,9 @@ The installed workflow is verified and extracted under `~/.cache/fun_proteomics/
 
 ## Raw search tools
 
-DDA uses the registered versions in [tool_versions.json](../assets/tool_versions.json): MSFragger 4.4.1, IonQuant 1.11.20 and diaTracer 2.2.1. Obtain these archives under their respective licenses and select them during setup. They are not distributed by this MIT package. The complete pinned DIA environment and method are in [DIA method](../modules/diapasef/method.toml) and [dependency lock](../modules/diapasef/requirements-lock.txt).
+DDA-PASEF and native BAF use the registered versions in [tool_versions.json](../assets/tool_versions.json): MSFragger 4.4.1, IonQuant 1.11.20 and diaTracer 2.2.1. Obtain these archives under their respective licenses and select them during setup. They are not distributed by this MIT package. The complete pinned DIA environment and method are in [DIA method](../modules/diapasef/method.toml) and [dependency lock](../modules/diapasef/requirements-lock.txt).
+
+BAF additionally uses a separately installed Bruker Baf2Sql reader through pinned pyBaf2Sql and psims. `install --baf` creates its own runtime; it does not bundle or relicense the vendor library. See [raw BAF](raw_baf.md) for supported acquisitions, technical-injection grouping and MS1 LFQ.
 
 ## Source installation
 

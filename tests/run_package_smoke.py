@@ -106,6 +106,13 @@ def main():
         assert verify_delivery(Path(imported_state['outdir']))==[]
         service_path.write_text(service_path.read_text()+'\n')
         assert 'Analysis input changed' in launch('--continue',imported,expected=2)
+        # A standalone benchmark has the same complete-delivery and continuation guarantees.
+        benchmark=root/'benchmark'
+        launch('benchmark','--matrix',service_path,'--samples',sheet,'--service-matrix',service_path,'--outdir',benchmark)
+        assert verify_delivery(benchmark)==[]
+        assert 'Completed outputs verified' in launch('--continue',benchmark)
+        summary=pd.read_csv(benchmark/'final_results/benchmark/reported_detection_summary.csv')
+        assert summary.net_reported_difference.eq(0).all()
         # Count-model continuation uses its original matrices and sample metadata.
         counts_source=root/'delivered counts';raw_counts=counts_source/'main_results/counts/tissue/dda/raw'
         raw_counts.mkdir(parents=True)

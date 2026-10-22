@@ -23,7 +23,7 @@ The guided raw workflow covers global label-free analysis. For phosphoproteomics
 
 ## 2. Review samples and comparisons
 
-Click **Discover samples** after selecting a matrix or raw-data folder. The assignment board follows OncoTracer's current interaction:
+Click **Discover samples** after selecting a matrix or raw-data folder. Assign samples to conditions using the interactive board:
 
 1. Detected acquisitions or matrix samples appear as cards in **Unassigned**. Imported sample tables prefill their conditions.
 2. Drag cards into **Control**, **Treatment**, or a condition you add. Edit the column heading to rename a condition. Use a card's dropdown as a keyboard/touch alternative.

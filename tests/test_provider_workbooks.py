@@ -73,9 +73,9 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(matrix.index.tolist(),['P1']);self.assertEqual(matrix.loc['P1','Renamed'],5)
         self.assertEqual(ann.loc['P1','Genes'],'G1');self.assertEqual(mapping.attrs['import']['excluded_provider_flag_rows'],3)
 
-    def test_baf_detection_provides_an_actionable_matrix_route(self):
+    def test_baf_detection_provides_raw_acquisition_cards(self):
         raw=self.root/'impact.d';raw.mkdir();(raw/'analysis.baf').touch()
-        with self.assertRaisesRegex(ValueError,'MaxQuant LFQ workbook'):study.scan(self.root)
+        self.assertEqual(study.scan(self.root)[0]['raw_path'],str(raw))
 
     def test_paired_design_rejects_pseudoreplication_and_unmatched_subjects(self):
         options=differential_options({'enabled':True,'subject_column':'donor'})

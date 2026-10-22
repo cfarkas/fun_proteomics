@@ -37,7 +37,7 @@ def discover(cfg, workflow):
             raise ValueError('The sample table needs nonempty, unique sample_id values')
         if 'condition' not in frame:
             frame['condition'] = ''
-    elif cfg['mode'] in ('dia', 'dda'):
+    elif cfg['mode'] in ('dia', 'dda', 'baf'):
         frame = pd.DataFrame(study.scan(cfg.get('raw_root', '')))
     else:
         if not cfg.get('matrix'):

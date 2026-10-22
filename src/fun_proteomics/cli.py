@@ -47,14 +47,17 @@ def parser():
     ui.add_argument('--no-browser', action='store_true')
     doctor = sub.add_parser('doctor', help='Check tools and explain what is missing')
     doctor.add_argument('--json', action='store_true')
-    doctor.add_argument('--mode', choices=['matrix', 'dia', 'dda'], default='matrix')
+    doctor.add_argument('--mode', choices=['matrix', 'dia', 'dda', 'baf'], default='matrix')
     install = sub.add_parser('install', help='Install analysis tools in the writable workflow cache')
+    install.add_argument('--baf', action='store_true', help='Install the separate native BAF reader and mzML writer')
     install.add_argument('--conda', action='store_true', help='Install pinned Python/Java/Nextflow and R tools')
     install.add_argument('--r-only', action='store_true', help='Install analysis packages using an existing Rscript')
     sub.add_parser('workflow-path', help='Print the workflow directory for direct nextflow run')
     for command, help_text in [('quantify','Import a quantification matrix using native Python'),
                                ('counts','Reanalyze delivered DDA counts using native Python'),
-                               ('matrices','Export CSV/TSV matrix companions and index')]:
+                               ('matrices','Export CSV/TSV matrix companions and index'),
+                               ('raw-baf','Search native BAF acquisitions and quantify MS1 LFQ'),
+                               ('benchmark','Benchmark any matched pipeline and service matrices')]:
         child = sub.add_parser(command, help=help_text, add_help=False)
         child.add_argument('arguments', nargs=argparse.REMAINDER)
     return p
@@ -81,6 +84,10 @@ def environment(project, args, inherited_r_library=None, inherited_rscript=None)
                 raise ValueError('R library does not exist: '+library)
         else:
             env['R_LIBS'] = os.pathsep.join(filter(None,[str(Path(library).resolve()),env.get('R_LIBS')]))
+    java=project/'.runtime/env'
+    if (java/'bin/java').is_file():
+        env['JAVA_HOME']=str(java)
+        env['PATH']=str(java/'bin')+os.pathsep+env.get('PATH','')
     env.setdefault('OPENBLAS_NUM_THREADS','1')
     env.setdefault('OMP_NUM_THREADS','1')
     return env
@@ -190,7 +197,7 @@ def execute(command, cwd, env, state_path, record, inspect=False):
         if record['engine'] == 'nextflow':
             record['session'] = nextflow_session(cwd, command)
         final = Path(record['outdir'])/'final_results'
-        if code == 0 and record['engine'] == 'native-quantification' and (final/'START_HERE.html').is_file():
+        if code == 0 and record['engine'] in ('native-quantification','native-benchmark') and (final/'START_HERE.html').is_file():
             (final/'FINAL_RESULTS_COMPLETE').write_text('Native quantification and reporting completed.\n')
         if code == 0 and (final/'FINAL_RESULTS_COMPLETE').is_file():
             final = Path(record['outdir'])/'final_results'
@@ -210,6 +217,11 @@ def continue_run(args, project):
     for item in (saved or {}).get('input_provenance', []):
         if not Path(item['path']).is_file() or digest(item['path']) != item['sha256']:
             raise ValueError('Analysis input changed or disappeared: '+item['path']+'; start a new run with the updated inputs')
+    if saved and saved.get('engine')=='native-baf':
+        if args.outdir or args.service_matrix or args.independent_samples:
+            raise ValueError('BAF continuation uses its saved settings; create a new project to change them')
+        command=[sys.executable,str(project/'scripts/run_baf.py'),*saved['command'][2:]]
+        return execute(command,project,environment(project,args,saved.get('r_library'),saved.get('rscript')),state_path,saved,args.print_command)
     verify_recorded_inputs(active_output, args.hash_raw)
     invalid = verify_delivery(active_output)
     if not args.outdir and not args.service_matrix and not invalid and (not saved or saved.get('engine') != 'nextflow'):
@@ -219,15 +231,15 @@ def continue_run(args, project):
             print('Completed outputs verified. No analysis needs repeating.')
             print('Results: '+str(active_output/'final_results/START_HERE.html'))
             return 0
-    if saved and saved.get('engine') in ('native-quantification', 'native-counts') and saved.get('command'):
+    if saved and saved.get('engine') in ('native-quantification', 'native-counts', 'native-benchmark') and saved.get('command'):
         if args.service_matrix or args.independent_samples:
             raise ValueError('This continuation reuses its recorded arguments; use quantify or counts to change the analysis')
         output = Path(args.outdir).expanduser().resolve() if args.outdir else fresh_output(folder)
         if output == folder or (output.exists() and any(output.iterdir())):
             raise ValueError('Use a new output folder; previous results are preserved')
-        script = 'analyze_quantification.py' if saved['engine'] == 'native-quantification' else 'reanalyze_counts.py'
+        script = {'native-quantification':'analyze_quantification.py','native-counts':'reanalyze_counts.py','native-benchmark':'benchmark_service.py'}[saved['engine']]
         command = [sys.executable, str(project/'scripts'/script), *saved['command'][2:]]
-        command = replace_option(command, '--outdir', output/'final_results' if saved['engine'] == 'native-quantification' else output)
+        command = replace_option(command, '--outdir', output/'final_results' if saved['engine'] in ('native-quantification','native-benchmark') else output)
         env = environment(project,args,saved.get('r_library'),saved.get('rscript'))
         record = dict(saved, outdir=str(output), continued_from=str(folder), project=str(project),
                       r_library=env.get('R_LIBS','').split(os.pathsep)[0] or None, rscript=env.get('PROTEOMICS_RSCRIPT'))
@@ -313,7 +325,7 @@ def main(argv=None):
     if '--interactive' in tokens or '--interactively' in tokens:
         index=next(i for i,v in enumerate(tokens) if v in ('--interactive','--interactively'))
         tokens=tokens[:index]+['setup']+tokens[index+1:]
-    native = {'quantify', 'counts', 'matrices'}
+    native = {'quantify', 'counts', 'matrices', 'raw-baf', 'benchmark'}
     value_flags = {'--workflow-dir','--project','--cache-dir','--rscript','--r-library','--nextflow','--continue','--outdir','--service-matrix'}
     boundary = None
     skip = False
@@ -356,26 +368,26 @@ def main(argv=None):
                 return study.run_study(config, args, project)
             return continue_run(args,project)
         env=environment(project,args)
-        if args.command in ('quantify','counts','matrices'):
-            script={'quantify':'scripts/analyze_quantification.py','counts':'scripts/reanalyze_counts.py','matrices':'pipeline_lib/matrix_catalog.py'}[args.command]
+        if args.command in ('quantify','counts','matrices','raw-baf','benchmark'):
+            script={'quantify':'scripts/analyze_quantification.py','counts':'scripts/reanalyze_counts.py','matrices':'pipeline_lib/matrix_catalog.py','raw-baf':'scripts/run_baf.py','benchmark':'scripts/benchmark_service.py'}[args.command]
             command=[sys.executable,str(project/script),*args.arguments]
             if args.command == 'matrices' or any(value in args.arguments for value in ('-h', '--help')):
                 if args.print_command:
                     print(shlex.join(command));return 0
                 return subprocess.run(command,env=env).returncode
-            paths = ('--matrix','--samples','--fasta','--service-matrix','--service-samples','--results','--outdir')
+            paths = ('--matrix','--samples','--fasta','--service-matrix','--service-samples','--results','--config','--outdir')
             command = absolute_options(command, paths)
             destinations = option_values(command, '--outdir')
             if len(destinations) != 1:
                 raise ValueError('Supply exactly one --outdir for this analysis')
             output = Path(destinations[0])
-            if output.exists() and any(output.iterdir()):
+            if args.command!='raw-baf' and output.exists() and any(output.iterdir()):
                 raise ValueError('Output folder is not empty; use --continue '+str(output))
             inputs = [value for flag in paths if flag != '--outdir' for value in option_values(command,flag)]
-            record = dict(engine='native-quantification' if args.command == 'quantify' else 'native-counts',
+            record = dict(engine={'quantify':'native-quantification','raw-baf':'native-baf','benchmark':'native-benchmark','counts':'native-counts'}[args.command],
                           outdir=str(output), project=str(project), input_provenance=recorded_files(inputs),
                           r_library=env.get('R_LIBS','').split(os.pathsep)[0] or None, rscript=env.get('PROTEOMICS_RSCRIPT'))
-            if args.command == 'quantify':
+            if args.command in ('quantify','benchmark'):
                 command = replace_option(command, '--outdir', output/'final_results')
             return execute(command,project,env,output/'.fun_proteomics/run.json',record,args.print_command)
         if args.command == 'ui':

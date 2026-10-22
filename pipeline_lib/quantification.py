@@ -175,11 +175,39 @@ def benchmark_detection(matrix, service):
 
 def write_benchmark(matrix, service, output, mapping=None):
     output = Path(output); output.mkdir(parents=True, exist_ok=True)
+    if set(matrix.columns)!=set(service.columns): raise ValueError('Benchmark matrices require the same matched samples')
+    observed=[]
+    for sample in [*matrix.columns,'__union__']:
+        a=int((matrix.gt(0).any(axis=1) if sample=='__union__' else matrix[sample].gt(0)).sum())
+        b=int((service.gt(0).any(axis=1) if sample=='__union__' else service[sample].gt(0)).sum())
+        observed.append(dict(sample_id=sample,pipeline_reported_positive_groups=a,service_reported_positive_groups=b,
+            net_reported_difference=a-b,percent_change=100*(a-b)/b if b else np.nan))
+    pd.DataFrame(observed).to_csv(output/'reported_detection_summary.csv',index=False)
+    audit=[]
+    for label,values in [('pipeline',matrix),('service',service)]:
+        incomplete=set(values.attrs.get('incomplete_groups',[]))
+        audit.append(dict(source=label,reported_groups=len(values),observed_groups=int(values.gt(0).any(axis=1).sum()),
+            incomplete_groups=len(incomplete),observed_incomplete_groups=int(values.loc[values.index.isin(incomplete)].gt(0).any(axis=1).sum()),
+            exact_benchmark_groups=int(values.loc[~values.index.isin(incomplete)].gt(0).any(axis=1).sum())))
+    pd.DataFrame(audit).to_csv(output/'group_completeness_audit.csv',index=False)
     summary, membership = benchmark_detection(matrix, service)
     summary.to_csv(output/'detection_summary.csv', index=False); membership.to_csv(output/'protein_membership.csv', index=False)
     service.to_csv(output/'service_quantification.csv')
     if mapping is not None: mapping.to_csv(output/'sample_mapping.csv', index=False)
-    (output/'README.md').write_text('# Service detection benchmark\n\nPositive values count as detected. Groups reconstructed from clipped FASTA headers are excluded from both sides. Rows are exact canonical protein groups; groups are not expanded into accessions. pipeline_only and service_only list gains and losses; net_difference is pipeline minus service. The union counts each group once across matched samples. Percentage change is blank when the service count is zero. Decoys/contaminants are excluded on import.\n\nSearch databases, protein grouping, identification FDR, transfer-between-runs and quantification methods may differ. More detections alone do not establish better accuracy. Counts are not differential abundance. Review the recorded sample mapping and input provenance.\n')
+    # An accession overlap is useful when inference groups differ; it is NOT an
+    # independent-protein count, because grouped accessions share peptide evidence.
+    def expand(values):
+        values=values.drop(index=values.attrs.get('incomplete_groups',[]),errors='ignore')
+        rows=[(accession,row) for group,row in values.iterrows() for accession in tokens(group)]
+        if not rows: return pd.DataFrame(columns=values.columns,dtype=float)
+        return pd.DataFrame([row for _,row in rows],index=[key for key,_ in rows]).groupby(level=0).max()
+    accessions, accession_members = benchmark_detection(expand(matrix),expand(service))
+    accessions.to_csv(output/'accession_overlap_summary.csv',index=False)
+    accession_members.rename(columns={'Protein.Group':'Accession'}).to_csv(output/'accession_membership.csv',index=False)
+    for path in output.glob('*.csv'):
+        pd.read_csv(path,keep_default_na=False,dtype=str).to_csv(path.with_suffix('.tsv'),sep='\t',index=False)
+
+    (output/'README.md').write_text('# Service detection benchmark\n\nPositive values count as detected. reported_detection_summary includes all positive groups as reported, including incomplete identifiers, and reports their net count difference without a shared/gained/lost identity claim. Groups reconstructed from clipped FASTA headers are excluded from exact matching on both sides. detection_summary uses exact canonical protein groups. group_completeness_audit reports all positive groups and the excluded incomplete groups separately. accession_overlap_summary is a supplementary overlap of accessions from complete groups; these are not independently identified proteins because grouped accessions can share peptide evidence. pipeline_only and service_only list gains and losses; net_difference is pipeline minus service. The union counts each group once across matched samples. Percentage change is blank when the service count is zero. Decoys/contaminants are excluded on import.\n\nSearch databases, protein grouping, identification FDR, transfer-between-runs and quantification methods may differ. More detections alone do not establish better accuracy. Counts are not differential abundance. Review the recorded sample mapping and input provenance.\n')
     return summary
 
 

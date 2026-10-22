@@ -1,0 +1,26 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:11.572
+Choose your output folder. For raw BAF, first install the reader with fun_proteomics install --baf.
+
+00:00:11.572 --> 00:00:19.678
+Drag acquisitions into conditions or use each card’s dropdown. Give technical injections the same biological sample ID so they are quantified together.
+
+00:00:19.678 --> 00:00:25.981
+Select paired comparisons when each donor contributes multiple conditions. Four conditions produce six comparisons.
+
+00:00:25.981 --> 00:00:33.079
+Enter the donor ID on every card. Technical injections do not increase the number of biological replicates.
+
+00:00:33.079 --> 00:00:41.427
+Choose a target/decoy FASTA with gene annotations and your registered search tools. Add a service matrix to benchmark detections.
+
+00:00:41.427 --> 00:00:49.835
+Check: sixteen technical injections become eight biological samples. Donor pairing is preserved for all six contrasts.
+
+00:00:49.835 --> 00:00:57.839
+Settings are saved. With real acquisitions, Run / continue starts conversion, search, LFQ and reporting. Later use --continue with this folder.
+
+00:00:57.839 --> 00:01:03.845
+This is a setup demonstration only. Placeholder files contain no spectra and are never searched.
+

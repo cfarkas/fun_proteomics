@@ -103,6 +103,19 @@ def assemble(plan,reports,out,rscript='Rscript',rlib=None,search_summary=None):
             for f in ('protein_intensity.tsv','protein_maxlfq_intensity.tsv'):
                 if (report/f).exists():shutil.copy2(report/f,dest/f)
             write(dest/'samples.csv',['sample_id','condition','replicate','cohort'],[{k:s[k] for k in ('sample_id','condition','replicate','cohort')} for s in samples])
+            if cohort in plan.get('service_quantification',{}):
+                import pandas as pd
+                from quantification import load_matrix, write_benchmark, file_provenance
+                spec=plan['service_quantification'][cohort]
+                if spec.get('sha256') and digest(spec['matrix'])!=spec['sha256']: raise ValueError('Service matrix changed during search')
+                quantity_table=report/'protein_maxlfq_intensity.tsv'
+                if not quantity_table.is_file(): quantity_table=report/'protein_intensity.tsv'
+                quantities,_,_=load_matrix(quantity_table,pd.DataFrame(samples).drop(columns=['service_sample'],errors='ignore'),'value')
+                service,_,mapping=load_matrix(spec['matrix'],pd.DataFrame(spec.get('samples') or samples),sheet=spec.get('sheet'))
+                benchmark=out/'benchmark'/cohort/slug
+                write_benchmark(quantities,service,benchmark,mapping)
+                (benchmark/'input_provenance.json').write_text(json.dumps(dict(pipeline=file_provenance(quantity_table),
+                    service=file_provenance(spec['matrix']),import_audit=mapping.attrs,cohort=cohort,mode=mode),indent=2)+'\n')
             manifest.append({'cohort':cohort,'mode':mode,'directory':str(dest.resolve())})
     for kind,rows in combined.items():
         write(out/(kind+'_counts.csv'),['Cohort','Mode','FeatureID']+annotations[kind]+sample_ids,rows)

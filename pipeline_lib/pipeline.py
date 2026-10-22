@@ -100,6 +100,14 @@ def validate(args):
         raise ValueError('A target-only FASTA requires contaminants_zip and contaminants_sha256')
     if 'contaminants_zip' in database and digest(database['contaminants_zip']) != database.get('contaminants_sha256'):
         raise ValueError('Contaminant archive SHA256 does not match the configuration')
+    for cohort, spec in cfg.get('service_quantification',{}).items():
+        if cohort not in {s['cohort'] for s in cfg['samples']}: raise ValueError('Unknown benchmark cohort: '+cohort)
+        spec['matrix']=resolve(spec['matrix'],base)
+        from quantification import load_matrix
+        import pandas as pd
+        samples=spec.get('samples') or selected_samples(cfg,cohort)
+        load_matrix(spec['matrix'],pd.DataFrame(samples),sheet=spec.get('sheet'))
+        spec['sha256']=digest(spec['matrix'])
     cfg['raw_audit'] = audit
     save('validated.json', cfg)
     save('input_audit.json', {'samples': audit, 'config_sha256': digest(args.config)})
@@ -256,24 +264,25 @@ def search(args):
     manifest = []
     for sample in samples:
         source = Path(sample['raw_path'])
-        target = raw_root / (sample['sample_id'] + '.d')
+        target = raw_root / (sample['sample_id'] + source.suffix)
+        experiment = sample.get('biological_sample') or sample['sample_id']
         if args.dry_run:
-            manifest.append('\t'.join([str(source), sample['sample_id'], '', args.mode]))
+            manifest.append('\t'.join([str(source), experiment, '', args.mode]))
             continue
         marker = raw_root / (sample['sample_id'] + '.copy_complete.json')
         if not marker.exists():
             if target.exists():
                 raise ValueError(f'Incomplete raw copy requires inspection before retry: {target}')
             subprocess.run(['cp', '--reflink=auto', '-a', '-L', str(source), str(target)], check=True)
-            original = {str(p.relative_to(source)): p.stat().st_size for p in source.rglob('*') if p.is_file()}
-            copied = {str(p.relative_to(target)): p.stat().st_size for p in target.rglob('*') if p.is_file()}
+            original = {str(p.relative_to(source)): p.stat().st_size for p in source.rglob('*') if p.is_file()} if source.is_dir() else {'sha256': digest(source)}
+            copied = {str(p.relative_to(target)): p.stat().st_size for p in target.rglob('*') if p.is_file()} if target.is_dir() else {'sha256': digest(target)}
             if original != copied:
                 raise ValueError(f'Raw staging verification failed for {sample["sample_id"]}')
             save(marker, {'source': str(source), 'files': original, 'copy_complete': True})
         # Vendor caches in a previously completed staged copy may change on retry.
         # They remain confined to this task's independent acquisition copy.
         # A unique experiment name and blank replicate retain the exact sample ID.
-        manifest.append('\t'.join([str(target), sample['sample_id'], '', args.mode]))
+        manifest.append('\t'.join([str(target), experiment, '', args.mode]))
     (root / 'fragpipe.manifest').write_text('\n'.join(manifest) + '\n')
     (root / 'fragpipe.workflow').write_text('\n'.join(f'{k}={v}' for k, v in properties.items()) + '\n')
     tools = Path(args.tools).resolve()  # FragPipe discovery does not descend symlink directories.

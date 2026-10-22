@@ -12,7 +12,7 @@
 | Independent samples not confirmed | Confirm only if each sample is a different patient or biological replicate. For paired matrix data, select Paired comparisons and supply donor IDs. Otherwise omit comparisons. |
 | An input or saved setting changed | Create a new project for the new analysis. Restore the original input only if you intend to continue the original analysis. |
 | Output folder is not empty | Use `--continue` for an existing run, or select a new project folder. |
-| BAF / Impact QTOF acquisitions detected | Import the delivered MaxQuant LFQ workbook or proteinGroups.txt. These files are not timsTOF PASEF. Raw BAF searching is not implemented; MGF alone cannot regenerate MS1 LFQ. |
+| BAF / Impact QTOF acquisitions detected | Choose Raw BAF in setup and run install --baf. Alternatively import the delivered LFQ workbook. MGF alone cannot regenerate MS1 LFQ. See [BAF guide](raw_baf.md). |
 | Multiple protein quantity worksheets | Select the worksheet by name in setup or with `--sheet`. |
 | A raw acquisition has the wrong frame type | Check the acquisition choice and the raw files. DDA requires frame types 0/8; DIA requires 0/9. |
 | Registered tool archive fails validation | Supply the pinned registered archive; see [installation](installation.md). |

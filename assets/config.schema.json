@@ -691,6 +691,36 @@
           }
         }
       }
+    },
+    "service_quantification": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "matrix"
+        ],
+        "properties": {
+          "matrix": {
+            "type": "string"
+          },
+          "sheet": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "samples": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "sha256": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "allOf": [

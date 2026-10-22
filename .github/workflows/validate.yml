@@ -92,3 +92,4 @@ jobs:
           FUN_PROTEOMICS_TEST_INSTALLED=1 python -m unittest discover -s tests -p test_assignments.py -v
           python tests/run_assignment_browser.py
           python tests/run_provider_browser.py
+          python tests/run_baf_browser.py
