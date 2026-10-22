@@ -1,12 +1,16 @@
 # Set up your own data
 
+Choose browser setup, terminal questions or explicit command-line options. All three methods save the same project configuration.
+
+## A) Interactive settings
+
 ```bash
 fun_proteomics setup --project /data/my-study
 ```
 
 Setup opens in your browser on a local, automatically selected port. Keep the launcher terminal open while configuring. Copy the entire URL, including its session code, when opening another browser. Analyses launched with **Run / continue** keep running if you close the setup server; reopen the same project to view progress.
 
-## 1. Choose data
+### 1. Choose data
 
 Choose one input type:
 
@@ -15,13 +19,14 @@ Choose one input type:
 | Quantification matrix | A CSV, TSV or XLSX protein table. Discover sample columns, or import an optional sample table. This also accepts a service table as the main matrix. |
 | DIA-PASEF raw data | A folder of `.d` acquisitions, a sample table or scanned sample assignments, and a target-only FASTA. |
 | DDA-PASEF raw data | A folder of `.d` acquisitions, sample assignments, a validated target/contaminant/decoy FASTA, and registered MSFragger, IonQuant and diaTracer archives. |
+| Raw BAF | Conventional DDA `.d` folders containing `analysis.baf`, a search FASTA, registered archives and biological sample assignments. [BAF guide](raw_baf.md). |
 | Existing run folder | A previous run root or its `final_results/` directory. Recorded settings and verified intermediates are reused. |
 
 The guided raw workflow covers global label-free analysis. For phosphoproteomics, immunopeptidomics, DDA+, database preparation or specialist options, use `fun_proteomics ui --advanced`; see the [advanced reference](advanced_reference.md). An existing native DIA/DDA JSON can also be selected under Advanced settings.
 
 **Output / project folder** selects where results are written. `setup --outdir /data/my-study` is an alias for `setup --project /data/my-study`. A live preview shows the matrix, report and continuation paths before saving. The project folder holds `config/`, `results/`, logs and launch state. Keep raw acquisitions in a separate directory tree. Save new analyses to a new or empty project. **Load saved project** reopens earlier settings.
 
-## 2. Review samples and comparisons
+### 2. Review samples and comparisons
 
 Click **Discover samples** after selecting a matrix or raw-data folder. Assign samples to conditions using the interactive board:
 
@@ -47,34 +52,44 @@ Sample IDs must match matrix columns. A protein table needs a recognized identif
 
 Raw sample tables additionally need `raw_path`; paths can be absolute or relative to the selected raw-data folder. Alternatively, **Scan .d folders** discovers acquisition cards for the same drag-and-drop board. No condition is inferred from a filename. Blank acquisitions are excluded from the scan. You can rename sample IDs; DDA identifiers must start with a letter and contain only letters, digits and underscores.
 
-All-versus-all testing is the default. Three conditions produce three unique comparisons; four produce six. Confirm that each sample is from a different patient or independent biological replicate. Original replicate labels are retained in the normalized matrix sample sheet; unique replicate numbers are used for the independent design. For repeated donors in matrix imports, select **Paired comparisons** and specify the donor column, or enter donor IDs on the sample cards. The model uses within-donor log2 differences; at least two complete pairs per feature are required. Aggregate technical injections before import. Other complex repeated-measures designs still need a tailored model.
+All-versus-all testing is the default. Three conditions produce three unique comparisons; four produce six. Confirm that each sample is from a different patient or independent biological replicate. Original replicate labels are retained in the normalized matrix sample sheet; unique replicate numbers are used for the independent design. For repeated donors in matrix imports or native BAF, select **Paired comparisons** and specify the donor column, or enter donor IDs on the sample cards. The model uses within-donor log2 differences; at least two complete pairs per feature are required. Aggregate technical injections before matrix import. In native BAF, assign technical injections the same biological sample ID; the workflow groups them before statistics. Other complex repeated-measures designs still need a tailored model.
 
 DIA and imported intensity tables use log2 positive quantities with limma-trend, no imputation, and no extra normalization by default. Median centering is optional for suitable unnormalized input. DDA uses count models. Native JSON imports retain their explicitly configured comparisons and design; they do not inherit the guided defaults.
 
 Supply the matching FASTA with `GN=` annotations when gene symbols are absent. Ambiguous gene assignments remain visible in the audit and are excluded from gene rollups. A service benchmark reports detection gains and losses; it is separate from differential abundance.
 
-## 3. Save and run
+### 3. Save and run
 
 **Check inputs** previews sample numbers, groups, comparisons and gene availability without saving. **Save configuration and check** saves `PROJECT/config/run.json` and the full assignment audit as `config/sample_assignments.csv` and `.tsv`. The audit includes Unassigned samples marked `included=false`; the analysis uses only assigned rows. Draft settings can be corrected before the first launch, with earlier versions retained in `config/backups/`. After launch, use a new project for a changed design. **Run / continue analysis** launches the same native Python or Nextflow code used from the terminal. Missing tools produce an actionable error in the progress log.
 
 **Stop analysis** requests a stop and preserves inputs and outputs. Use Run / continue after resolving the interruption. Changed saved inputs are rejected rather than silently reused; use a new project for a changed analysis.
 
-## Terminal and automation
+## B) Terminal questions
 
 ```bash
 fun_proteomics setup --terminal --project /data/my-study --run
+```
+
+Answer the input, condition, design and output-folder questions. Omit `--run` to save for review. Terminal setup works over SSH without browser forwarding.
+
+## C) Full command-line options
+
+```bash
+fun_proteomics setup --non-interactive --project /data/my-study \
+  --mode matrix --matrix /data/proteins.csv --samples /data/samples.csv \
+  --independent-samples --normalization none --cpus 8 --memory-gib 32 --run
+```
+
+For paired matrix/BAF data, replace `--independent-samples` with `--subject-column donor`. [All options and raw-data commands](command_line.md) · [Real-data quick start](quick_start.md).
+
+Check and run a saved configuration, or continue its results:
+
+```bash
 fun_proteomics check --config /data/my-study/config/run.json
 fun_proteomics run --config /data/my-study/config/run.json
 fun_proteomics --continue /data/my-study
 ```
 
-`fun_proteomics --interactive --project /data/my-study` is a browser shortcut. `python -m fun_proteomics` accepts the same arguments. `--non-interactive` accepts setup answers as flags; see [the complete example](quick_start.md).
+`python -m fun_proteomics` accepts the same arguments. From a source checkout, `nextflow run main.nf --interactive --project /data/my-study` opens the same setup interface; see the [advanced reference](advanced_reference.md).
 
-From a source checkout with Python dependencies installed:
-
-```bash
-nextflow run main.nf --interactive --project /data/my-study
-nextflow run main.nf --continue /data/my-study
-```
-
-For SSH browser access, launch with `setup --no-browser --port 8765 --project /data/my-study`, then forward that local port with `ssh -L 8765:127.0.0.1:8765 user@server`. Open the printed URL on your computer. Browse paths refer to the server. `--terminal` needs no forwarding.
+For SSH browser access, launch with `setup --no-browser --port 8765 --project /data/my-study`, then forward the port with `ssh -L 8765:127.0.0.1:8765 user@server`. Open the printed URL on your computer. Browse paths refer to the server.

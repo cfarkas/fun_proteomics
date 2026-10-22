@@ -7,3 +7,5 @@ FragPipe, MSFragger, IonQuant, diaTracer, DIA-NN, Nextflow and the Python/R depe
 This source package contains no experimental acquisitions or sample-level study data. Aggregate execution and benchmark results are documented separately. The FragPipe settings file is a configuration, not a bundled copy of the application.
 
 Native BAF conversion optionally installs [pyBaf2Sql](https://github.com/gtluu/pyBaf2Sql) (Apache-2.0 wrapper, separately supplied Bruker Baf2Sql 2.9.0 library and third-party notices) and [psims](https://github.com/mobiusklein/psims) (Apache-2.0). These dependencies are installed in a separate user runtime, not redistributed in the MIT fun_proteomics wheel or source archive. Their original licenses remain applicable.
+
+The separately downloadable UbiLength quick-start dataset contains public measurements from Zhang et al. (2017), distributed by the DEP authors under Artistic-2.0. Its source files, license, citation and reproducible conversion are included in the example archive. It is not included in the MIT Python package or workflow source archive. The original preparation script remains MIT licensed.

@@ -2,7 +2,7 @@
 
 A Nextflow pipeline with browser-based setup for native Bruker DDA-PASEF and DIA-PASEF acquisitions. The DDA branch uses FragPipe for DDA/DDA+ searches, protein and peptide count tables, modification counts, and optional differential analyses. The DIA branch uses DIA-NN for identification and quantification.
 
-Raw-data analyses start with `nextflow run main.nf`. Existing count or quantification tables can also be analyzed directly using the scripts below. Use `--interactively` to configure either acquisition type. Direct DDA runs use `--config`; direct DIA runs use `--dia_config`.
+Raw PASEF analyses start with `nextflow run main.nf`. Existing count or quantification tables can also be analyzed directly using the scripts below. Use `--interactively` to configure either acquisition type. Direct DDA runs use `--config`; direct DIA runs use `--dia_config`.
 
 The workflow is independent of cell line, treatment, and organism. Supply your own acquisitions, sample assignments, and matching FASTA. No study data, results, registered software, or machine-specific configuration is included.
 
@@ -21,7 +21,7 @@ fun_proteomics run --dia-config /data/dia.json --outdir /data/results_dia
 nextflow run main.nf --continue /data/my_study
 ```
 
-The Python package includes workflow code and reporting assets. It excludes study data, results, credentials and registered binaries. Raw workflows use Nextflow; existing quantification and verified-search reporting can run in native Python. The project is distributed under the [MIT license](../LICENSE).
+The Python package includes workflow code and reporting assets. It excludes study data, results, credentials and registered binaries. Raw PASEF workflows use Nextflow; conventional [raw BAF](raw_baf.md), existing quantification and verified-search reporting run in native Python. The project is distributed under the [MIT license](../LICENSE).
 
 ## Find matrices and compare all conditions
 

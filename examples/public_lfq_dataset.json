@@ -1,0 +1,44 @@
+{
+  "dataset": "DEP UbiLength",
+  "publication": "Zhang et al. (2017). An interaction landscape of ubiquitin signaling. Molecular Cell 65(5): 941\u2013955.",
+  "doi": "10.1016/j.molcel.2017.01.004",
+  "upstream_repository": "https://github.com/arnesmits/DEP",
+  "upstream_commit": "b425d8d0db67b15df4b8bcf87729ef0bf5800256",
+  "upstream_license": "Artistic-2.0",
+  "source_files": {
+    "UbiLength.rda": {
+      "url": "https://raw.githubusercontent.com/arnesmits/DEP/b425d8d0db67b15df4b8bcf87729ef0bf5800256/data/UbiLength.rda",
+      "sha256": "8452e42419c79e3f299aad0dafccaacab8a60e5395e46f7dde7ef6f79b09605c"
+    },
+    "UbiLength_ExpDesign.rda": {
+      "url": "https://raw.githubusercontent.com/arnesmits/DEP/b425d8d0db67b15df4b8bcf87729ef0bf5800256/data/UbiLength_ExpDesign.rda",
+      "sha256": "0a9f9ac38949822454c31d5c101c1abf8ec4bf689387161f126ec44fcafdc3ee"
+    }
+  },
+  "export": {
+    "source_rows": 3006,
+    "samples": 12,
+    "conditions": [
+      "Ctrl",
+      "Ubi1",
+      "Ubi4",
+      "Ubi6"
+    ],
+    "replicates_per_condition": 3,
+    "quantity": "published LFQ intensity",
+    "transformations": [
+      "retain full protein-group IDs, gene/protein names, LFQ values and exclusion flags",
+      "rename quantity columns to sample IDs",
+      "export the original condition/replicate table as samples.csv and samples.tsv"
+    ],
+    "imputation": false,
+    "renormalization": false
+  },
+  "checked_outputs": {
+    "protein_rows": 2902,
+    "gene_rows": 2696,
+    "protein_comparisons": 6,
+    "gene_comparisons": 6
+  },
+  "prepare_script_sha256": "c209cfcaa58f85e4f69a0bc5db5a28facd5623a2d00f255f9f7e2d4be9a4494e"
+}

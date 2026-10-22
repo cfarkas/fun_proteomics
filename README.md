@@ -1,81 +1,108 @@
 # fun_proteomics
 
-Analyze Bruker DDA-PASEF, DIA-PASEF and conventional DDA BAF data, or import a MaxQuant Excel workbook / protein quantification table. Get protein and gene matrices, all-versus-all comparisons, quality control, and detection benchmarks against a service provider. Every matrix is delivered as **CSV and TSV**.
-
-```bash
-pip install fun_proteomics
-fun_proteomics setup --project /data/my-study
-```
-
-**`--project` is your output folder.** `--outdir` is an equivalent setup option. The browser previews the full destination before saving: `PROJECT/results/final_results/matrices/` holds protein and gene CSV/TSV files.
-
-Already installed? `pip install --upgrade fun_proteomics` updates the launcher.
-[PyPI package](https://pypi.org/project/fun-proteomics/) · [Watch drag-and-drop setup](https://cfarkas.github.io/fun_proteomics/#videos)
-
-
-## Start here
-
-| What you want to do | Guide |
-| --- | --- |
-| Try a small example | [Quick start](docs/quick_start.md) |
-| Watch interactive setup | [Walkthrough videos](https://cfarkas.github.io/fun_proteomics/) · [transcripts](docs/videos.md) |
-| Import MaxQuant or Bruker service LFQ, with paired donors | [Provider workbooks](docs/provider_workbooks.md) |
-| Re-search raw BAF files | [Raw BAF guide](docs/raw_baf.md) |
-| Compare any run with its service | [Benchmarking guide](docs/benchmarking.md) |
-| Analyze your own data | [Set up a project](docs/setup.md) |
-| Install analysis tools | [Installation](docs/installation.md) |
-| Find matrices or understand comparisons | [Outputs](docs/outputs.md) |
-| Continue an earlier analysis | [Continue and recover](docs/continuation.md) |
-| Resolve an error | [Troubleshooting](docs/troubleshooting.md) |
+Analyze raw Bruker DDA-PASEF, DIA-PASEF and conventional DDA BAF data, or import a protein quantification table. Get protein and gene matrices, all-versus-all comparisons, quality control, and service detection benchmarks. Every matrix is available as **CSV and TSV**.
 
 ## Install
 
-Linux and Python 3.11 or newer:
+Linux, Python 3.11 or newer:
 
 ```bash
-python3 -m venv proteomics-env
-source proteomics-env/bin/activate
-python -m pip install fun_proteomics
-fun_proteomics system --path /data/my-study
+pip install --upgrade fun_proteomics
 fun_proteomics install --conda
 fun_proteomics doctor
 ```
 
-The Python package installs the launcher and reporting code. `install --conda` prepares the pinned analysis runtime and R packages in a user-writable cache; it does not use sudo. Registered DDA search archives remain separate. If you already have R and the analysis tools, see [reuse an installation](docs/installation.md#reuse-an-installation).
+[Installation and existing runtimes](docs/installation.md) · [PyPI](https://pypi.org/project/fun-proteomics/) · [Walkthrough videos](https://cfarkas.github.io/fun_proteomics/#videos)
+
+## Quick start with real data
+
+Download a small, published ubiquitin-affinity LFQ dataset: **12 samples, four conditions, three experimental replicates per condition**. The archive includes protein quantities, sample assignments, original source files, checksums and data attribution.
+
+```bash
+wget https://github.com/cfarkas/fun_proteomics/releases/download/v0.9.0/ubiquitin-lfq-example.tar.gz
+wget https://github.com/cfarkas/fun_proteomics/releases/download/v0.9.0/ubiquitin-lfq-example.tar.gz.sha256
+sha256sum -c ubiquitin-lfq-example.tar.gz.sha256
+tar -xzf ubiquitin-lfq-example.tar.gz
+fun_proteomics setup --project "$PWD/ubiquitin-study" \
+  --mode matrix --matrix "$PWD/ubiquitin-lfq-example/proteins.csv" \
+  --samples "$PWD/ubiquitin-lfq-example/samples.csv"
+```
+
+The browser opens with the dataset selected. Discover the samples, review the four condition columns, confirm the replicate design, then save and run. This analyzes real quantified data; it does not repeat a raw spectrum search. [Step-by-step quick start, terminal and scripted versions](docs/quick_start.md).
 
 ## Set up your analysis
+
+Choose **one** of the following launch methods. **`--project` is your output folder**; `setup --outdir` is an equivalent option. Use a new project for a new analysis.
+
+### A) Interactive settings
 
 ```bash
 fun_proteomics setup --project /data/my-study
 ```
 
-Keep the terminal open. Setup opens a local browser: choose your input, click **Discover samples**, and drag sample cards into condition columns. Add or rename conditions, move cards between them, or return them to **Unassigned** to exclude them. Each card also has a condition dropdown. Then click **Save configuration and check** and **Run / continue analysis**. Results and progress appear in the same page. Use the Browse buttons to select files on the computer running the analysis.
+Keep the terminal open. In the local browser:
 
-For terminal questions, including over SSH:
+1. Choose a matrix, raw-data folder or previous run, and review the output folder.
+2. Click **Discover samples**. Drag sample cards into condition columns. Add or rename conditions; move excluded samples to **Unassigned**. A sample table can prefill assignments.
+3. Choose independent samples or paired matrix/BAF comparisons with donor IDs. Keep all-versus-all comparisons; four conditions produce six pairs at each feature level.
+4. Click **Save configuration and check**, then **Run / continue analysis**.
+5. Open **Results** or **Matrices · CSV & TSV** in the same page.
+
+Use the Browse buttons to select files on the computer running the analysis. [Input formats, technical injections and SSH browser access](docs/setup.md).
+
+### B) Terminal questions
 
 ```bash
 fun_proteomics setup --terminal --project /data/my-study --run
 ```
 
-Both interfaces save `my-study/config/run.json`. Browser assignments are also exported as `config/sample_assignments.csv` and `.tsv`, including exclusions. To review first, omit `--run` in terminal setup. Then:
+Answer the questions about input files, conditions, replicate design and output folder. This uses the same analysis as the browser and works over SSH. Omit `--run` to save and review the configuration first.
+
+### C) Full command-line options
+
+Supply every input explicitly to run without questions:
+
+```bash
+fun_proteomics setup --non-interactive --project /data/my-study \
+  --mode matrix --matrix /data/proteins.csv --samples /data/samples.csv \
+  --independent-samples --normalization none \
+  --cpus 8 --memory-gib 32 --run
+```
+
+For paired matrix/BAF data, replace `--independent-samples` with `--subject-column donor`. Add `--service-matrix /data/provider.tsv` to benchmark a matching service table. [All command-line options and raw DIA/DDA/BAF examples](docs/command_line.md).
+
+To check and run an existing saved configuration:
 
 ```bash
 fun_proteomics check --config /data/my-study/config/run.json
 fun_proteomics run --config /data/my-study/config/run.json
 ```
 
-`check` validates inputs and explains the planned comparisons. `run` starts the saved analysis or continues it. Choose independent biological replicates or paired matrix/BAF comparisons with explicit donor IDs. Four conditions produce six comparisons at each feature level.
+All three methods save `config/run.json`. Browser sample assignments are also saved as CSV and TSV.
 
-## Find results and continue
+## Results and continuation
 
-Open **`my-study/START_HERE.html`** for results or **`my-study/MATRICES.html`** for CSV/TSV downloads. Detailed deliverables live in `my-study/results/final_results/`.
+Open **`my-study/START_HERE.html`** for results or **`my-study/MATRICES.html`** for direct CSV/TSV downloads. Detailed outputs live in `my-study/results/final_results/`.
 
 ```bash
 fun_proteomics --continue /data/my-study
 ```
 
-Completed native results are verified and reused. Incomplete reports are rebuilt from verified inputs; PASEF workflows resume their saved Nextflow session. Native BAF verifies and reuses converted spectra and completed searches. Existing runs from earlier releases also accept `--continue /path/to/run`. [Integrity checks and recovery details](docs/continuation.md).
+Completed native results are verified and reused. Native BAF checks converted spectra and complete searches. Raw PASEF workflows resume their Nextflow session. [Integrity checks and recovery](docs/continuation.md).
 
-Native Python and direct Nextflow remain supported. See [advanced commands](docs/advanced_reference.md) for raw JSON configurations, the advanced raw editor, phosphoproteomics, DDA counts, and specialist settings.
+## Guides
 
-MIT licensed. Maintained by [cfarkas](https://github.com/cfarkas).
+| Task | Guide |
+| --- | --- |
+| Try the real LFQ dataset | [Quick start](docs/quick_start.md) |
+| Watch interactive launches | [Videos](https://cfarkas.github.io/fun_proteomics/#videos) · [transcripts](docs/videos.md) |
+| Import service Excel workbooks | [Provider workbooks](docs/provider_workbooks.md) |
+| Re-search raw BAF data | [BAF guide](docs/raw_baf.md) |
+| Compare pipeline and service detections | [Benchmarking](docs/benchmarking.md) |
+| Review the full EV_PPC execution and service comparisons | [Execution report](docs/validation.md) |
+| Analyze your own data | [Input and sample setup](docs/setup.md) |
+| Find matrices and comparisons | [Outputs](docs/outputs.md) |
+| Use advanced native Python or Nextflow settings | [Advanced reference](docs/advanced_reference.md) |
+| Fix an error | [Troubleshooting](docs/troubleshooting.md) |
+
+MIT licensed. Maintained by [cfarkas](https://github.com/cfarkas). The public example retains its upstream data license and citation.
