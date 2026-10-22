@@ -82,3 +82,11 @@ jobs:
           python tests/run_package_smoke.py
           python -m unittest discover -s tests -p test_guided_setup.py -v
           python tests/run_guided_smoke.py
+      - name: Test installed drag-and-drop setup in Chromium
+        env:
+          PROTEOMICS_RSCRIPT: /usr/bin/Rscript
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+          FUN_PROTEOMICS_TEST_INSTALLED=1 python -m unittest discover -s tests -p test_assignments.py -v
+          python tests/run_assignment_browser.py

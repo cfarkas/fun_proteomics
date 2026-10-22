@@ -24,7 +24,7 @@ PATH_FIELDS = ('matrix', 'samples', 'fasta', 'service_matrix', 'service_samples'
                'study_config', 'raw_root', 'msfragger_zip', 'ionquant_zip', 'diatracer_zip')
 FIELDS = set(PATH_FIELDS) | {'fun_proteomics_project', 'project', 'mode', 'independent_samples',
          'differential', 'quantity', 'normalization', 'fdr', 'min_replicates', 'cpus', 'memory_gib',
-         'python', 'sample_rows', 'contains_decoys', 'dda_plus'}
+         'python', 'sample_rows', 'assignment_board', 'contains_decoys', 'dda_plus'}
 
 
 def add_commands(sub):
@@ -107,7 +107,10 @@ def samples_for(cfg, workflow):
     imports(workflow)
     from quantification import read_table
     import pandas as pd
-    if cfg.get('samples'):
+    if 'assignment_board' in cfg:
+        from .assignments import rows_for
+        frame=pd.DataFrame(rows_for(cfg)).fillna('').astype(str)
+    elif cfg.get('samples'):
         frame=read_table(cfg['samples'])
     elif cfg.get('sample_rows'):
         frame=pd.DataFrame(cfg['sample_rows']).fillna('').astype(str)
@@ -188,6 +191,8 @@ def check(cfg, workflow):
                 or dia_settings(source) or latest_legacy_nextflow(source)):
             raise ValueError('No saved analysis or reusable search detected in this folder')
         return {'mode':mode,'source_run':str(source),'summary':'Continue the saved design and verify reusable outputs before executing.'}
+    if cfg.get('study_config') and 'assignment_board' in cfg:
+        raise ValueError('A native configuration supplies its own assignments; clear it to use the sample board')
     if cfg.get('study_config'):
         if not Path(cfg['study_config']).is_file(): raise ValueError('Native configuration file does not exist')
         native=read_json(cfg['study_config'])
@@ -225,6 +230,9 @@ def check(cfg, workflow):
         pairs+=len(counts)*(len(counts)-1)//2 if cfg['differential'] else 0
     report=dict(mode=mode,samples=len(frame),conditions=conditions,comparisons=pairs,
                 summary=f'{len(frame)} independent samples; {pairs} condition pairs at protein and available gene levels.' if cfg['independent_samples'] else f'{len(frame)} samples; matrices and quality control only.',warnings=[])
+    if 'assignment_board' in cfg:
+        report['unassigned']=len(cfg['assignment_board']['rows'])-len(frame)
+        report['summary']+=f" {report['unassigned']} unassigned samples excluded."
     if mode=='matrix':
         from quantification import load_matrix, annotate_groups, gene_matrix
         if not cfg.get('matrix'): raise ValueError('Select the protein quantification matrix')
@@ -237,7 +245,8 @@ def check(cfg, workflow):
         if not report['genes']: report['warnings'].append('No unambiguous gene symbols found. Supply the matching FASTA with GN= annotations for gene reports.')
         if cfg.get('service_matrix'):
             from quantification import read_table, benchmark_detection
-            service_samples=read_table(cfg['service_samples']) if cfg.get('service_samples') else frame
+            from .assignments import service_samples_for
+            service_samples=service_samples_for(cfg,frame,workflow)
             service,_,_=load_matrix(cfg['service_matrix'],service_samples)
             report['benchmark']=benchmark_detection(matrix,service)[0]
             # Preview stays small and JSON serializable.
@@ -286,8 +295,29 @@ def save(cfg, workflow):
         raise ValueError('Choose a new or empty project folder; to reopen a project, select one with config/run.json')
     with locked(project):
         if path.is_file():
-            if load(path)!=cfg: raise ValueError('This project already has saved settings. Use a new project for changed inputs or design.')
+            if load(path)!=cfg:
+                # Drafts can be corrected, but a launched design remains immutable.
+                if ((project/'.fun_proteomics/launch.json').exists()
+                        or (project/'.fun_proteomics/browser-launch.json').exists()
+                        or (project/'results').exists()):
+                    raise ValueError('This project has already been launched. Use a new project for changed inputs or design.')
+                from datetime import datetime, timezone
+                backup=path.parent/'backups'/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
+                backup.mkdir(parents=True)
+                for name in ('run.json','sample_assignments.csv','sample_assignments.tsv'):
+                    if (path.parent/name).is_file(): shutil.copy2(path.parent/name,backup/name)
+                write_json(path,cfg)
+                if 'assignment_board' not in cfg:
+                    for name in ('sample_assignments.csv','sample_assignments.tsv'):
+                        (path.parent/name).unlink(missing_ok=True)
         else: write_json(path,cfg)
+        if 'assignment_board' in cfg:
+            import pandas as pd
+            table=pd.DataFrame(cfg['assignment_board']['rows'])
+            table['included']=table.condition.ne('')
+            table=table[['included',*[c for c in table if c!='included']]]
+            for suffix,sep in [('csv',','),('tsv','\t')]:
+                table.to_csv(path.parent/('sample_assignments.'+suffix),sep=sep,index=False)
     return path,report
 
 
@@ -359,8 +389,13 @@ def run_study(path,args,workflow,check_only=False):
                      '--quantity',cfg['quantity'],'--normalization',cfg['normalization'],'--fdr',str(cfg['fdr']),
                      '--min-replicates',str(cfg['min_replicates'])]
             if cfg['differential']: command.append('--differential')
-            for field in ('fasta','service_matrix','service_samples'):
+            for field in ('fasta','service_matrix'):
                 if cfg.get(field): command += ['--'+field.replace('_','-'),cfg[field]]
+            if cfg.get('service_samples'):
+                from .assignments import service_samples_for
+                provider=project/'config/service_samples.csv'
+                if not getattr(args,'print_command',False): service_samples_for(cfg,samples,workflow).to_csv(provider,index=False)
+                command += ['--service-samples',str(provider)]
         else:
             native=Path(cfg['study_config']) if cfg.get('study_config') else project/'config/native.json'
             if not cfg.get('study_config') and not getattr(args,'print_command',False):

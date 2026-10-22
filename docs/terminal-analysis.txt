@@ -15,19 +15,19 @@ Compare every condition against every other condition? (yes/no) [yes]: yes
 Does each sample come from a different patient or biological replicate? (yes/no) [no]: yes
 6 independent samples; 3 condition pairs at protein and available gene levels.
 10 protein groups; 10 unambiguous genes.
-Saved: /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/study/config/run.json
+Saved: /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/study/config/run.json
 6 independent samples; 3 condition pairs at protein and available gene levels.
 10 protein groups; 10 unambiguous genes.
-Configuration: /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/study/config/run.json
-/tmp/fun-proteomics-wheel-test/bin/python /tmp/fun-proteomics-walkthroughs-v060b/workflow-cache/0.6.0-4a5d06a4f9942d47/scripts/analyze_quantification.py --matrix /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/inputs/proteins.csv --samples /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/study/config/samples.csv --outdir /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/study/results/final_results --quantity auto --normalization none --fdr 0.05 --min-replicates 2 --differential --service-matrix /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/inputs/service.csv
-Results: /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/study/results/final_results/START_HERE.html
-Open results: /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/study/START_HERE.html
-Open matrices (CSV + TSV): /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/study/MATRICES.html
+Configuration: /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/study/config/run.json
+/tmp/fun-proteomics-wheel-test/bin/python /tmp/fun-proteomics-walkthroughs-v070-final-terminal/workflow-cache/0.7.0-de0507f049fd7446/scripts/analyze_quantification.py --matrix /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/inputs/proteins.csv --samples /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/study/config/samples.csv --outdir /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/study/results/final_results --quantity auto --normalization none --fdr 0.05 --min-replicates 2 --differential --service-matrix /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/inputs/service.csv
+Results: /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/study/results/final_results/START_HERE.html
+Open results: /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/study/START_HERE.html
+Open matrices (CSV + TSV): /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/study/MATRICES.html
 $ python -m fun_proteomics --continue ./study
 6 independent samples; 3 condition pairs at protein and available gene levels.
 10 protein groups; 10 unambiguous genes.
-Configuration: /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/study/config/run.json
+Configuration: /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/study/config/run.json
 Completed outputs verified. No analysis needs repeating.
-Results: /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/study/results/final_results/START_HERE.html
-Open results: /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/study/START_HERE.html
-Open matrices (CSV + TSV): /tmp/fun-proteomics-walkthroughs-v060b/terminal-analysis/study/MATRICES.html
+Results: /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/study/results/final_results/START_HERE.html
+Open results: /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/study/START_HERE.html
+Open matrices (CSV + TSV): /tmp/fun-proteomics-walkthroughs-v070-final-terminal/terminal-analysis/study/MATRICES.html

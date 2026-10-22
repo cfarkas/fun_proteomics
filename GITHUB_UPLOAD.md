@@ -2,8 +2,9 @@
 
 The public repository is **cfarkas/fun_proteomics**. The source package supports native
 Bruker DDA-PASEF through FragPipe and DIA-PASEF through DIA-NN, using the same
-`main.nf` entry point. `nextflow run main.nf --interactively` configures either
-acquisition type. Direct DIA runs use `nextflow run main.nf --dia_config study.json`;
+`main.nf` entry point. `fun_proteomics setup --project /data/my-study` opens the
+drag-and-drop sample setup. The direct Nextflow equivalent is
+`nextflow run main.nf --interactive --project /data/my-study`. Direct DIA runs use `nextflow run main.nf --dia_config study.json`;
 the browser generates that native DIA configuration while preserving the editable study.
 
 ## Validate and package

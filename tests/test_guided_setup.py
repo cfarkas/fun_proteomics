@@ -52,11 +52,12 @@ class GuidedSetupTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'matched 0 columns'):study.save(self.cfg,ROOT)
         self.assertFalse(Path(self.cfg['project']).exists())
 
-    def test_save_and_reload_is_identical_and_rejects_new_settings(self):
+    def test_save_and_reload_is_identical_and_launched_settings_are_locked(self):
         path,_=study.save(self.cfg,ROOT)
         original=path.read_bytes()
         study.save(study.load(path),ROOT)
         self.assertEqual(path.read_bytes(),original)
+        (path.parent.parent/'.fun_proteomics/launch.json').write_text('{}')
         with self.assertRaisesRegex(ValueError,'new project'):study.save(dict(self.cfg,normalization='median'),ROOT)
         self.assertEqual(path.read_bytes(),original)
 

@@ -9,7 +9,7 @@ fun_proteomics setup --project "$PWD/proteomics-demo"
 
 The first command creates `proteomics-demo-inputs/` beside the project. It does not launch an analysis. In the browser:
 
-1. Choose **Quantification matrix**. Browse to `proteomics-demo-inputs/proteins.csv` and `samples.csv`.
+1. Choose **Quantification matrix**. Browse to `proteomics-demo-inputs/proteins.csv`, then click **Discover samples**. Drag C1/C2 into Control, A1/A2 into Treatment A and B1/B2 into Treatment B (rename/add condition columns). Alternatively, select `samples.csv` before discovery to prefill these assignments.
 2. Choose **Review analysis**. Keep all-versus-all comparisons. Confirm independent biological replicates for this synthetic example. Select `service.csv` for the optional detection benchmark.
 3. Choose **Save configuration and check**, then **Run / continue analysis**.
 4. Open **Matrices · CSV & TSV**. There are three condition pairs at protein and gene levels, six differential result tables in total.

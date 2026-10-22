@@ -74,6 +74,18 @@ def launch(args,folder,env):
     return process,url
 
 
+
+def drag_sample(page,sample,condition):
+    card=page.locator('.sample').filter(has=page.get_by_role('textbox',name='Sample name for '+sample,exact=True))
+    card.locator('.drag-handle').scroll_into_view_if_needed()
+    target=page.locator('.sample-column').filter(has=page.get_by_role('textbox',name='Rename condition '+condition,exact=True)) if condition else page.get_by_role('region',name='Unassigned samples',exact=True)
+    start=card.locator('.drag-handle').bounding_box();end=target.locator('.column-heading').bounding_box()
+    page.mouse.move(start['x']+start['width']/2,start['y']+start['height']/2)
+    page.mouse.down();page.mouse.move(end['x']+end['width']/2,end['y']+end['height']/2,steps=20);page.mouse.up()
+    assert card.locator('.type-select').input_value()==condition, {'sample':sample,'expected':condition,'actual':card.locator('.type-select').input_value(),'start':start,'target':end}
+    assert card.evaluate('(e)=>e.closest(".sample-column").dataset.condition')==condition
+
+
 def browser_clip(browser,args,env,raw=False):
     name='raw-dia-setup' if raw else 'browser-analysis';folder=args.work_dir/name;folder.mkdir()
     inputs=fixture(folder);process,url=launch(args,folder,env)
@@ -92,25 +104,37 @@ def browser_clip(browser,args,env,raw=False):
                     db.execute('CREATE TABLE Frames (MsMsType INTEGER)');db.executemany('INSERT INTO Frames VALUES (?)',[(0,),(9,)])
             fasta=inputs/'targets.fasta';fasta.write_text('>sp|P00001|DEMO GN=GENE_A\nMPEPTIDEK\n')
             page.locator('input[name=mode][value=dia]').check();page.locator('#raw_root').fill(str(acquisitions))
-            page.locator('#scan').click();page.wait_for_function('document.querySelectorAll("#raw-table tbody tr").length===4')
+            page.locator('#scan').click();page.wait_for_function('document.querySelectorAll(".sample").length===4')
             clip.say('Choose DIA-PASEF and scan your raw-data folder. This demo contains synthetic acquisition metadata only.',6)
-            for i,row in enumerate(page.locator('#raw-table tbody tr').all()):row.locator('input').nth(1).fill('Control' if i<2 else 'Treatment')
-            clip.say('Assign a condition to every sample. Conditions are never guessed from filenames.',6)
+            for i in range(4):drag_sample(page,'Sample'+str(i+1),'Control' if i<2 else 'Treatment');page.wait_for_timeout(400)
+            clip.say('Drag acquisition cards into Control or Treatment, just as in OncoTracer. Each card also has a condition dropdown.',7)
+            drag_sample(page,'Sample1','')
+            clip.say('Move a card back to Unassigned to exclude it. Here we put it back into Control before saving.',6)
+            drag_sample(page,'Sample1','Control')
             page.locator('#next').click();page.locator('#independent_samples').check();page.locator('#fasta').fill(str(fasta))
             clip.say('Confirm independent biological replicates. Choose the matching target-only FASTA with gene annotations.',7)
             page.locator('#check').click();page.wait_for_function('document.getElementById("preview").textContent.includes("1 condition pairs")')
             page.locator('#preview').scroll_into_view_if_needed()
             clip.say('Check inputs before running. Two conditions give one comparison at protein and available gene levels.',7)
             page.locator('#save').click();page.wait_for_function('!document.getElementById("run").disabled')
-            clip.say('The configuration is saved. With real spectra and installed tools, Run / continue starts the Nextflow workflow.',7)
+            clip.say('The saved configuration and CSV/TSV assignment audit preserve these groups. With real spectra and installed tools, Run / continue starts the Nextflow workflow.',7)
             clip.say('This recording stops after setup. No spectrum search or biological result is claimed for synthetic acquisitions.',6)
             assert not (folder/'study/results').exists()
         else:
             page.locator('[data-browse=matrix]').click();page.locator('#browse-path').fill(str(inputs));page.locator('#browse-go').click()
             page.locator('#entries').get_by_role('button',name='proteins.csv',exact=True).wait_for()
             clip.say('Browse files on the computer running the analysis. Select your protein quantification table.',5)
-            page.locator('#entries').get_by_role('button',name='proteins.csv',exact=True).click();page.locator('#samples').fill(str(inputs/'samples.csv'))
-            clip.say('Select the sample table. Sample IDs match quantity columns; condition names define the comparison groups.',6)
+            page.locator('#entries').get_by_role('button',name='proteins.csv',exact=True).click()
+            page.locator('#discover').click();page.wait_for_selector('.sample')
+            clip.say('Discover samples from the matrix. Cards start in Unassigned; a sample table can optionally prefill conditions.',6)
+            field=page.get_by_role('textbox',name='Rename condition Treatment',exact=True);field.fill('Treatment A');field.press('Tab')
+            page.locator('#new-condition').fill('Treatment B');page.locator('#add-condition').click()
+            for sample,condition in [('C1','Control'),('C2','Control'),('A1','Treatment A'),('A2','Treatment A'),('B1','Treatment B'),('B2','Treatment B')]:
+                drag_sample(page,sample,condition);page.wait_for_timeout(400)
+            clip.say('Drag cards into your conditions. Add or rename columns, or use the dropdown on each card.',7)
+            drag_sample(page,'C1','')
+            clip.say('Unassigned cards are excluded. Drag the sample back into Control to include it in this analysis.',6)
+            drag_sample(page,'C1','Control')
             page.locator('#next').click();page.locator('#independent_samples').check();page.locator('#service_matrix').fill(str(inputs/'service.csv'))
             clip.say('Keep all-versus-all comparisons and confirm independent samples. An optional service matrix adds detection gains and losses.',8)
             page.locator('#check').click();page.wait_for_function('document.getElementById("preview").textContent.includes("3 condition pairs")')

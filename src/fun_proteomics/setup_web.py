@@ -144,6 +144,9 @@ def make_server(app,port=0):
                     if not path.is_dir():raise ValueError('Directory does not exist')
                     entries=sorted((p for p in path.iterdir() if not p.name.startswith('.')),key=lambda p:(not p.is_dir(),p.name.lower()))
                     return self.reply({'path':str(path),'parent':str(path.parent),'entries':[{'name':p.name,'path':str(p),'directory':p.is_dir()} for p in entries[:500]],'truncated':len(entries)>500})
+                if self.path=='/api/discover':
+                    from .assignments import discover
+                    return self.reply({'board':discover(data['config'],app.workflow)})
                 if self.path=='/api/scan':return self.reply({'samples':study.scan(data['path'])})
                 if self.path=='/api/load':return self.reply(app.load(data['project']))
                 if self.path=='/api/check':return self.reply(study.check(data['config'],app.workflow))

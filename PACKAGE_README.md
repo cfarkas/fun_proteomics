@@ -2,6 +2,15 @@
 
 Analyze Bruker DDA-PASEF and DIA-PASEF data, or start with a protein quantification table. Get protein and gene matrices, all-versus-all comparisons, quality control, and detection benchmarks against a service provider. Every matrix is delivered as **CSV and TSV**.
 
+```bash
+pip install fun_proteomics
+fun_proteomics setup --project /data/my-study
+```
+
+Already installed? `pip install --upgrade fun_proteomics` updates the launcher.
+[PyPI package](https://pypi.org/project/fun-proteomics/) · [Watch drag-and-drop setup](https://cfarkas.github.io/fun_proteomics/#videos)
+
+
 ## Start here
 
 | What you want to do | Guide |
@@ -35,7 +44,7 @@ The Python package installs the launcher and reporting code. `install --conda` p
 fun_proteomics setup --project /data/my-study
 ```
 
-Keep the terminal open. Setup opens a local browser: choose your input, review sample groups, then click **Save configuration and check** and **Run / continue analysis**. Results and progress appear in the same page. Use the Browse buttons to select files on the computer running the analysis.
+Keep the terminal open. Setup opens a local browser: choose your input, click **Discover samples**, and drag sample cards into condition columns, just as in OncoTracer. Add or rename conditions, move cards between them, or return them to **Unassigned** to exclude them. Each card also has a condition dropdown. Then click **Save configuration and check** and **Run / continue analysis**. Results and progress appear in the same page. Use the Browse buttons to select files on the computer running the analysis.
 
 For terminal questions, including over SSH:
 
@@ -43,7 +52,7 @@ For terminal questions, including over SSH:
 fun_proteomics setup --terminal --project /data/my-study --run
 ```
 
-Both interfaces save `my-study/config/run.json`. To review first, omit `--run` in terminal setup. Then:
+Both interfaces save `my-study/config/run.json`. Browser assignments are also exported as `config/sample_assignments.csv` and `.tsv`, including exclusions. To review first, omit `--run` in terminal setup. Then:
 
 ```bash
 fun_proteomics check --config /data/my-study/config/run.json
