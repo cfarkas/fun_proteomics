@@ -89,6 +89,9 @@ def build_matrix_catalog(output):
     for path in sorted((output/'differential_expression').rglob('log2_intensities.csv')):
         parts = path.relative_to(output/'differential_expression').parts
         add(path, parts[0] if len(parts) > 2 else '', 'DIA/import', parts[-2], 'log2_intensity')
+    for path in sorted((output/'differential_expression').rglob('paired_log2_differences.csv')):
+        parts = path.relative_to(output/'differential_expression').parts
+        add(path, parts[0] if len(parts)>3 else '', 'Paired/import', parts[-3], 'paired_log2_difference')
     for path in sorted((output/'benchmark').rglob('service_quantification.csv')):
         parts = path.relative_to(output/'benchmark').parts
         add(path, parts[0] if len(parts) > 1 else '', 'Service', 'protein', 'service_quantity')

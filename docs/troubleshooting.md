@@ -9,9 +9,11 @@
 | Browser runs on a remote server | Use the SSH forwarding instructions in [setup](setup.md), or add `--terminal`. |
 | Sample matched zero or multiple columns | Make `sample_id` match the quantity column. Use a separate `service_samples` mapping with `service_sample` when provider names differ. |
 | No unambiguous genes | Supply the matching FASTA with `GN=` annotations. Review excluded and unmapped gene assignments; gene names are never guessed. |
-| Independent samples not confirmed | Confirm only if each sample is a different patient or biological replicate. Otherwise omit comparisons and use a tailored model. |
+| Independent samples not confirmed | Confirm only if each sample is a different patient or biological replicate. For paired matrix data, select Paired comparisons and supply donor IDs. Otherwise omit comparisons. |
 | An input or saved setting changed | Create a new project for the new analysis. Restore the original input only if you intend to continue the original analysis. |
 | Output folder is not empty | Use `--continue` for an existing run, or select a new project folder. |
+| BAF / Impact QTOF acquisitions detected | Import the delivered MaxQuant LFQ workbook or proteinGroups.txt. These files are not timsTOF PASEF. Raw BAF searching is not implemented; MGF alone cannot regenerate MS1 LFQ. |
+| Multiple protein quantity worksheets | Select the worksheet by name in setup or with `--sheet`. |
 | A raw acquisition has the wrong frame type | Check the acquisition choice and the raw files. DDA requires frame types 0/8; DIA requires 0/9. |
 | Registered tool archive fails validation | Supply the pinned registered archive; see [installation](installation.md). |
 | Missing Nextflow session/cache | Restore the original work/cache or run a fresh project. Incomplete searches are not reused as completed results. |

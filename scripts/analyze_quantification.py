@@ -7,12 +7,15 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'pipeline_lib'))
 from quantification import load_matrix, read_table, file_provenance, annotate_groups
-from quantification_analysis import analyze_matrix
+from quantification_analysis import analyze_matrix, write_dashboard
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--matrix',required=True)
+    parser.add_argument('--sheet',help='Excel worksheet; automatically detect a protein quantity sheet when omitted')
+    parser.add_argument('--service-sheet',help='Excel worksheet for the service benchmark')
+    parser.add_argument('--subject-column',help='Donor/subject column for paired all-versus-all comparisons')
     parser.add_argument('--samples',required=True,help='CSV/TSV with sample_id; differential testing also needs condition and replicate')
     parser.add_argument('--outdir',required=True,help='New or empty output directory')
     parser.add_argument('--quantity',choices=['auto','value','maxlfq','intensity','spectral_count'],default='auto')
@@ -33,21 +36,24 @@ def main():
     samples=read_table(args.samples)
     if 'sample_type' in samples and samples.sample_type.nunique()>1: parser.error('Analyze sample types separately')
     if 'cohort' in samples and samples.cohort.nunique()>1: parser.error('Analyze cohorts separately')
-    matrix,annotations,mapping=load_matrix(args.matrix,samples,args.quantity,args.id_column)
+    matrix,annotations,mapping=load_matrix(args.matrix,samples,args.quantity,args.id_column,sheet=args.sheet)
     if args.fasta:
         report=annotations.reset_index();annotations=annotate_groups(report,matrix.index,args.fasta)
     measure='spectral_count' if args.quantity=='spectral_count' or mapping.quantity.eq('spectral_count').any() else args.measure
     service=service_map=None
     if args.service_matrix:
         service_samples=read_table(args.service_samples) if args.service_samples else samples
-        service,_,service_map=load_matrix(args.service_matrix,service_samples,args.service_quantity)
+        service,_,service_map=load_matrix(args.service_matrix,service_samples,args.service_quantity,sheet=args.service_sheet)
     options=dict(enabled=args.differential,comparisons='control' if args.control else 'all_pairwise',control=args.control,
                  fdr=args.fdr,min_replicates=args.min_replicates,normalization=args.normalization)
+    if args.subject_column: options['subject_column']=args.subject_column
     if args.rscript: options['rscript']=args.rscript
     analyze_matrix(matrix,annotations,samples,output,options,service,service_map,measure)
     mapping.to_csv(output/'quality_control/input_sample_mapping.csv',index=False)
+    (output/'quality_control/import_audit.json').write_text(json.dumps(mapping.attrs,indent=2)+'\n')
     provenance={key:file_provenance(path) for key,path in vars(args).items() if key in ('matrix','samples','service_matrix','service_samples','fasta') and path}
     (output/'quality_control/input_provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
+    write_dashboard(output)
     print('Results: '+str((output/'START_HERE.html').resolve()))
 
 

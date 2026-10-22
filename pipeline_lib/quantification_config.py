@@ -8,7 +8,7 @@ import re
 
 def differential_options(options=None):
     if options is None: options={}
-    allowed={'enabled','comparisons','control','fdr','min_replicates','normalization','gene_level','rscript'}
+    allowed={'enabled','comparisons','control','fdr','min_replicates','normalization','gene_level','rscript','subject_column'}
     if not isinstance(options,dict) or set(options)-allowed: raise ValueError('Unknown intensity differential options')
     result=dict(enabled=False,comparisons='all_pairwise',fdr=.05,min_replicates=2,normalization='none',gene_level=True,rscript=os.environ.get('PROTEOMICS_RSCRIPT','Rscript'))
     result.update(options)
@@ -21,6 +21,10 @@ def differential_options(options=None):
     if isinstance(value,bool) or not str(value).isdigit() or int(value)<2: raise ValueError('min_replicates must be an integer >= 2')
     result['min_replicates']=int(value)
     if result['normalization'] not in ('none','median'): raise ValueError('normalization must be none or median')
+    if result.get('subject_column') is not None:
+        column=result['subject_column']
+        if not isinstance(column,str) or not column.strip() or column != column.strip():
+            raise ValueError('subject_column must name the donor/subject column in the sample table')
     return result
 
 
@@ -34,6 +38,20 @@ def validate_design_rows(samples,options):
         seen.add(key);groups[key[0]]=groups.get(key[0],0)+1
     if len(groups)<2 or min(groups.values())<options['min_replicates']: raise ValueError('Differential analysis requires at least two conditions with independent biological replicates')
     if options['comparisons']=='control' and options['control'] not in groups: raise ValueError('Reference condition not found in this sample type')
+    column=options.get('subject_column')
+    if column:
+        from itertools import combinations
+        subjects={}; seen_subjects=set()
+        for row in samples:
+            subject=str(row.get(column, '')).strip(); condition=str(row['condition'])
+            if not subject: raise ValueError('Paired analysis needs a nonempty '+column+' for every sample')
+            key=(condition,subject)
+            if key in seen_subjects: raise ValueError('Repeated donor within a condition: aggregate technical injections before paired analysis')
+            seen_subjects.add(key); subjects.setdefault(condition,set()).add(subject)
+        pairs=list(combinations(groups,2)) if options['comparisons']=='all_pairwise' else [(options['control'],g) for g in groups if g!=options['control']]
+        for a,b in pairs:
+            if len(subjects[a] & subjects[b])<options['min_replicates']:
+                raise ValueError('Paired comparison '+a+' vs '+b+' needs at least '+str(options['min_replicates'])+' matched donors')
 
 
 def audit_service(path,samples):

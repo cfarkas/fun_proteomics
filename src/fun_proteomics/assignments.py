@@ -15,6 +15,7 @@ METADATA = {'protein.group', 'protein', 'featureid', 'protein id', 'protein_grou
 
 def source(cfg):
     value = {key: cfg.get(key, '') for key in SOURCE_FIELDS}
+    if cfg.get('sheet'): value['sheet'] = cfg['sheet']
     for key in ('matrix', 'samples'):
         if cfg.get(key):
             value[key + '_sha256'] = digest(cfg[key])
@@ -41,7 +42,8 @@ def discover(cfg, workflow):
     else:
         if not cfg.get('matrix'):
             raise ValueError('Select a protein matrix before discovering samples')
-        table = read_table(cfg['matrix'])
+        from quantification_import import read_quantification
+        table = read_quantification(cfg['matrix'], cfg.get('sheet'))
         quantity = cfg['quantity']
         if quantity == 'auto':
             quantity = next((k for k in ('maxlfq', 'intensity', 'spectral_count')
@@ -62,11 +64,11 @@ def discover(cfg, workflow):
             raise ValueError('No sample quantity columns detected. Supply a sample table with explicit sample_id / service_sample mappings.')
         frame = pd.DataFrame([dict(sample_id=run_name(c), run=c, condition='') for c in columns])
     if cfg['mode'] == 'matrix':
-        _, _, mapping = load_matrix(cfg['matrix'], frame, cfg['quantity'])
+        _, _, mapping = load_matrix(cfg['matrix'], frame, cfg['quantity'], sheet=cfg.get('sheet'))
         # Keep the source alias stable when the display/analysis name is edited.
         for index, item in enumerate(mapping.to_dict('records')):
             suffix = SUFFIXES[item['quantity']]
-            alias = item['source_column'][:-len(suffix)] if suffix else item['source_column']
+            alias = item['source_alias']
             frame.loc[frame.index[index], 'run'] = alias
             frame.loc[frame.index[index], 'service_sample'] = alias
     else:

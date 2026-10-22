@@ -19,7 +19,7 @@ Choose one input type:
 
 The guided raw workflow covers global label-free analysis. For phosphoproteomics, immunopeptidomics, DDA+, database preparation or specialist options, use `fun_proteomics ui --advanced`; see the [advanced reference](advanced_reference.md). An existing native DIA/DDA JSON can also be selected under Advanced settings.
 
-The project folder holds `config/`, `results/`, logs and launch state. Keep raw acquisitions in a separate directory tree. Save new analyses to a new or empty project. **Load saved project** reopens earlier settings.
+**Output / project folder** selects where results are written. `setup --outdir /data/my-study` is an alias for `setup --project /data/my-study`. A live preview shows the matrix, report and continuation paths before saving. The project folder holds `config/`, `results/`, logs and launch state. Keep raw acquisitions in a separate directory tree. Save new analyses to a new or empty project. **Load saved project** reopens earlier settings.
 
 ## 2. Review samples and comparisons
 
@@ -31,7 +31,7 @@ Click **Discover samples** after selecting a matrix or raw-data folder. The assi
 4. Edit sample names if needed; their original acquisition paths or matrix columns stay linked. The filter helps find samples in larger studies.
 5. Review the assigned/excluded counts and the number of unique comparisons before continuing.
 
-Only assigned samples enter matrices, comparisons and service benchmarks. Conditions are never inferred from filenames. For plain matrices, discovery lists numeric candidate columns; review them and leave annotation columns unassigned. Use a sample table for explicit mappings, including all-missing columns. FragPipe quantity suffixes are recognized automatically.
+Only assigned samples enter matrices, comparisons and service benchmarks. Conditions are never inferred from filenames. For plain matrices, discovery lists numeric candidate columns; review them and leave annotation columns unassigned. Use a sample table for explicit mappings, including all-missing columns. FragPipe suffixes and MaxQuant `LFQ intensity SAMPLE` / `Intensity SAMPLE` prefixes are recognized automatically. Excel cover pages are skipped; use **Excel worksheet** or `--sheet` when a workbook contains more than one eligible quantity sheet. [Provider workbook details](provider_workbooks.md).
 
 An optional matrix sample table needs:
 
@@ -47,7 +47,7 @@ Sample IDs must match matrix columns. A protein table needs a recognized identif
 
 Raw sample tables additionally need `raw_path`; paths can be absolute or relative to the selected raw-data folder. Alternatively, **Scan .d folders** discovers acquisition cards for the same drag-and-drop board. No condition is inferred from a filename. Blank acquisitions are excluded from the scan. You can rename sample IDs; DDA identifiers must start with a letter and contain only letters, digits and underscores.
 
-All-versus-all testing is the default. Three conditions produce three unique comparisons; four produce six. Confirm that each sample is from a different patient or independent biological replicate. Original replicate labels are retained in the normalized matrix sample sheet; unique replicate numbers are used for the independent design. Repeated measures require a tailored statistical model: turn comparisons off if you only need matrices and QC.
+All-versus-all testing is the default. Three conditions produce three unique comparisons; four produce six. Confirm that each sample is from a different patient or independent biological replicate. Original replicate labels are retained in the normalized matrix sample sheet; unique replicate numbers are used for the independent design. For repeated donors in matrix imports, select **Paired comparisons** and specify the donor column, or enter donor IDs on the sample cards. The model uses within-donor log2 differences; at least two complete pairs per feature are required. Aggregate technical injections before import. Other complex repeated-measures designs still need a tailored model.
 
 DIA and imported intensity tables use log2 positive quantities with limma-trend, no imputation, and no extra normalization by default. Median centering is optional for suitable unnormalized input. DDA uses count models. Native JSON imports retain their explicitly configured comparisons and design; they do not inherit the guided defaults.
 

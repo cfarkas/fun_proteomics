@@ -26,13 +26,15 @@ def from_args(args):
                independent_samples=getattr(args,'study_independent',False) or False,
                differential=not getattr(args,'no_differential',False),quantity=getattr(args,'quantity','auto'),
                normalization=getattr(args,'normalization','none'),cpus=getattr(args,'cpus',8),memory_gib=getattr(args,'memory_gib',32))
+    for field in ('sheet','service_sheet','subject_column'):
+        if getattr(args,field,None): cfg[field]=getattr(args,field)
     return cfg
 
 
 def setup(args,workflow):
     interactive=not args.non_interactive
     print('\nfun_proteomics | Set up an analysis\n')
-    project=args.study_project or (ask('Project folder',required=True) if interactive else None)
+    project=args.study_project or (ask('Output/project folder',required=True) if interactive else None)
     if not project: raise ValueError('Supply --project for non-interactive setup')
     path=Path(project).expanduser().resolve()/'config/run.json'
     if path.is_file():
@@ -71,8 +73,10 @@ def setup(args,workflow):
                     cfg['service_matrix']=ask('Service matrix for a detection benchmark (optional)')
                 if not args.no_differential:
                     cfg['differential']=yes('Compare every condition against every other condition?',True)
-                if cfg['differential'] and not cfg['independent_samples']:
+                if cfg['differential'] and not cfg['independent_samples'] and not cfg.get('subject_column'):
                     cfg['independent_samples']=yes('Does each sample come from a different patient or biological replicate?')
+                    if not cfg['independent_samples'] and mode=='matrix':
+                        cfg['subject_column']=ask('Donor/subject column for paired comparisons', 'subject', required=True)
                 if mode=='dda':
                     for key in ('msfragger_zip','ionquant_zip','diatracer_zip'):
                         if not cfg.get(key): cfg[key]=ask('Registered '+key+' archive',required=True)
@@ -82,6 +86,8 @@ def setup(args,workflow):
         path,report=study.save(cfg,workflow)
         study.display(report)
         print('Saved: '+str(path))
+        print('Output folder: '+str(path.parent.parent))
+        print('Matrices and comparisons: '+str(path.parent.parent/'results/final_results'))
     if args.run:
         action='run'
     elif interactive:

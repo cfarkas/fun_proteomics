@@ -18,7 +18,7 @@ def canonical_group(value):
 
 
 def excluded_group(value):
-    return any(re.match(r'(?i)^(?:contam|contaminant|rev|reverse|decoy|xxx)[_|-]', v)
+    return any(re.match(r'(?i)^(?:con|contam|contaminant|rev|reverse|decoy|xxx)[_|-]', v)
                for token in tokens(value) for v in token.split('|'))
 
 
@@ -51,13 +51,15 @@ SUFFIXES = {'maxlfq': ' MaxLFQ Intensity', 'intensity': ' Intensity',
             'spectral_count': ' Spectral Count', 'value': ''}
 
 
-def load_matrix(path, samples, quantity='auto', id_column=None):
+def load_matrix(path, samples, quantity='auto', id_column=None, sheet=None):
     """Return values, annotations and explicit sample-column mapping.
 
     service_sample in the sample sheet overrides provider column matching.
-    No fuzzy matching, duplicate collapsing, or implicit zero imputation.
+    No fuzzy matching, summing observed duplicate groups, or zero imputation.
+    Empty duplicate rows in FASTA-header reports are removed with an audit.
     """
-    table = read_table(path)
+    from quantification_import import read_quantification
+    table = read_quantification(path, sheet)
     if 'sample_id' not in samples or not samples.sample_id.is_unique or samples.sample_id.eq('').any():
         raise ValueError('Sample IDs must be nonempty and unique within this matrix')
     id_column = id_column or next((v for v in ('Protein.Group', 'Protein', 'FeatureID', 'Protein ID', 'protein_group', 'group_key') if v in table), None)
@@ -92,7 +94,7 @@ def load_matrix(path, samples, quantity='auto', id_column=None):
         column = matches.pop()
         if column in selected.values(): raise ValueError('Multiple samples map to the same column: ' + column)
         selected[sample['sample_id']] = column
-        mapping.append({'sample_id': sample['sample_id'], 'source_column': column, 'quantity': quantity})
+        mapping.append({'sample_id': sample['sample_id'], 'source_column': table.attrs.get('source_columns', {}).get(column, column), 'source_alias': run_name(column[:-len(suffix)] if suffix else column), 'quantity': quantity})
     values = table[list(selected.values())].replace({'': np.nan, 'NA': np.nan, 'NaN': np.nan, 'nan': np.nan, 'N/A': np.nan, 'null': np.nan})
     try: values = values.apply(pd.to_numeric, errors='raise')
     except (ValueError, TypeError) as error: raise ValueError('Quantities must be numeric or blank/NA') from error
@@ -104,7 +106,13 @@ def load_matrix(path, samples, quantity='auto', id_column=None):
         source = next((v for v in candidates if v in table), None)
         annotations[dest] = table[source].to_numpy() if source else ''
     annotations['gene_mapping_status'] = annotations.Genes.map(lambda v: 'unmapped' if not tokens(v) else 'single_gene' if len(tokens(v)) == 1 else 'ambiguous')
+    for column in ('reported_fasta_headers', 'protein_group_membership'):
+        if column in table: annotations[column] = table[column].to_numpy()
+    if 'protein_group_membership' in annotations:
+        annotations.loc[annotations.protein_group_membership.ne('complete'), 'gene_mapping_status'] = 'partial'
+        values.attrs['incomplete_groups']=annotations.index[annotations.protein_group_membership.ne('complete')].tolist()
     mapping = pd.DataFrame(mapping); mapping.attrs['excluded_decoy_contaminant_rows'] = int(excluded.sum())
+    mapping.attrs['import'] = dict(table.attrs.get('import', {}), excluded_decoy_contaminant_rows=int(excluded.sum()))
     return values, annotations, mapping
 
 
@@ -131,7 +139,13 @@ def annotate_groups(report, groups, fasta=None):
         status = 'unmapped' if not symbols else 'ambiguous' if len(symbols) > 1 else 'single_gene' if complete else 'partial'
         records.append({'Protein.Group': key, 'Genes': ';'.join(sorted(symbols)), 'Protein.Names': ';'.join(sorted(names.get(key, set()))),
                         'gene_mapping_status': status, 'gene_annotation_source': source})
-    return pd.DataFrame(records, columns=['Protein.Group','Genes','Protein.Names','gene_mapping_status','gene_annotation_source']).set_index('Protein.Group')
+    result = pd.DataFrame(records, columns=['Protein.Group','Genes','Protein.Names','gene_mapping_status','gene_annotation_source']).set_index('Protein.Group')
+    if 'protein_group_membership' in report:
+        metadata = report.drop_duplicates('Protein.Group').set_index('Protein.Group')
+        for column in ('protein_group_membership', 'reported_fasta_headers'):
+            if column in metadata: result[column] = metadata[column].reindex(result.index)
+        result.loc[result.protein_group_membership.eq('partial_header'), 'gene_mapping_status'] = 'partial'
+    return result
 
 
 def gene_matrix(matrix, annotations):
@@ -142,6 +156,8 @@ def gene_matrix(matrix, annotations):
 
 
 def benchmark_detection(matrix, service):
+    matrix=matrix.drop(index=matrix.attrs.get('incomplete_groups',[]),errors='ignore')
+    service=service.drop(index=service.attrs.get('incomplete_groups',[]),errors='ignore')
     if set(matrix.columns) != set(service.columns): raise ValueError('Benchmark matrices require the same matched samples')
     if '__union__' in matrix.columns: raise ValueError('Sample name __union__ is reserved for benchmark summaries')
     rows, membership = [], []
@@ -163,7 +179,7 @@ def write_benchmark(matrix, service, output, mapping=None):
     summary.to_csv(output/'detection_summary.csv', index=False); membership.to_csv(output/'protein_membership.csv', index=False)
     service.to_csv(output/'service_quantification.csv')
     if mapping is not None: mapping.to_csv(output/'sample_mapping.csv', index=False)
-    (output/'README.md').write_text('# Service detection benchmark\n\nPositive values count as detected. Rows are exact canonical protein groups; groups are not expanded into accessions. pipeline_only and service_only list gains and losses; net_difference is pipeline minus service. The union counts each group once across matched samples. Percentage change is blank when the service count is zero. Decoys/contaminants are excluded on import.\n\nSearch databases, protein grouping, identification FDR, transfer-between-runs and quantification methods may differ. More detections alone do not establish better accuracy. Counts are not differential abundance. Review the recorded sample mapping and input provenance.\n')
+    (output/'README.md').write_text('# Service detection benchmark\n\nPositive values count as detected. Groups reconstructed from clipped FASTA headers are excluded from both sides. Rows are exact canonical protein groups; groups are not expanded into accessions. pipeline_only and service_only list gains and losses; net_difference is pipeline minus service. The union counts each group once across matched samples. Percentage change is blank when the service count is zero. Decoys/contaminants are excluded on import.\n\nSearch databases, protein grouping, identification FDR, transfer-between-runs and quantification methods may differ. More detections alone do not establish better accuracy. Counts are not differential abundance. Review the recorded sample mapping and input provenance.\n')
     return summary
 
 

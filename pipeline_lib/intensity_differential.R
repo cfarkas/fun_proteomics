@@ -8,6 +8,12 @@ if (!all(c('sample_id','condition','replicate') %in% names(samples))) stop('Samp
 if (anyDuplicated(samples$sample_id) || anyDuplicated(data[[1]])) stop('Duplicate sample or feature identifiers')
 if (any(!nzchar(samples$condition)) || any(!nzchar(samples$replicate))) stop('Empty condition or replicate')
 if (anyDuplicated(samples[c('condition','replicate')])) stop('Replicate IDs must be independent within each condition')
+subject_column <- job$subject_column
+blocked <- !is.null(subject_column) && nzchar(subject_column)
+if (blocked) {
+ if (!subject_column %in% names(samples) || any(is.na(samples[[subject_column]])) || any(!nzchar(samples[[subject_column]]))) stop('Paired analysis requires donor identifiers')
+ if (anyDuplicated(samples[,c('condition',subject_column)])) stop('Aggregate technical injections before paired analysis')
+}
 groups <- unique(samples$condition)
 if (length(groups)<2 || any(table(samples$condition)<2)) stop('At least two independent replicates per condition and two conditions are required')
 if (!all(samples$sample_id %in% names(data))) stop('Matrix is missing sample columns')
@@ -26,6 +32,10 @@ out <- job$outdir; dir.create(out, recursive=TRUE, showWarnings=FALSE)
 write.csv(data.frame(sample_id=samples$sample_id,log2_offset=offset),file.path(out,'normalization.csv'),row.names=FALSE)
 write.csv(cbind(annotation,as.data.frame(y,check.names=FALSE)),file.path(out,'log2_intensities.csv'),row.names=FALSE,na='')
 design <- model.matrix(~0+factor(samples$condition,levels=groups)); colnames(design) <- groups
+if (blocked) {
+ subject <- factor(samples[[subject_column]]); condition <- factor(samples$condition,levels=groups)
+ design <- model.matrix(~0+condition+subject)
+}
 write.csv(data.frame(sample_id=samples$sample_id,design,check.names=FALSE),file.path(out,'design.csv'),row.names=FALSE)
 mode <- if(is.null(job$comparisons)) 'all_pairwise' else job$comparisons
 if (!mode %in% c('all_pairwise','control')) stop('Unknown comparison mode')
@@ -43,19 +53,39 @@ for(pair in pairs) {
  tab <- annotation; tab$baseline <- rep(pair[1],nrow(y)); tab$comparison <- rep(pair[2],nrow(y))
  tab$logFC <- rowMeans(y[,b,drop=FALSE],na.rm=TRUE)-rowMeans(y[,a,drop=FALSE],na.rm=TRUE)
  tab$logFC[!is.finite(tab$logFC)] <- NA_real_; tab$PValue <- tab$FDR <- rep(NA_real_,nrow(y))
+ name <- paste0(labels[[pair[1]]],'_vs_',labels[[pair[2]]]); folder <- file.path(out,name); dir.create(folder,showWarnings=FALSE)
+ if (blocked) {
+  subjects <- intersect(samples[[subject_column]][a], samples[[subject_column]][b])
+  if (length(subjects)<minimum) stop('Too few matched donors for this comparison')
+  ia <- which(a)[match(subjects,samples[[subject_column]][a])]; ib <- which(b)[match(subjects,samples[[subject_column]][b])]
+  differences <- y[,ib,drop=FALSE]-y[,ia,drop=FALSE]; colnames(differences) <- subjects
+  complete <- is.finite(differences); npairs <- rowSums(complete); eligible <- npairs>=minimum
+  tab$logFC <- rowMeans(differences,na.rm=TRUE); tab$logFC[!is.finite(tab$logFC)] <- NA_real_
+  tab$detected_pairs <- npairs
+  write.csv(data.frame(subject=subjects,reference=samples$sample_id[ia],comparison=samples$sample_id[ib]),file.path(folder,'paired_samples.csv'),row.names=FALSE)
+  write.csv(cbind(annotation,as.data.frame(differences,check.names=FALSE)),file.path(folder,'paired_log2_differences.csv'),row.names=FALSE,na='')
+ }
  tab$detected_reference <- na; tab$detected_comparison <- nb; tab$test_status <- rep('insufficient observations',nrow(y))
  if (sum(eligible)>=2) {
   # Pair-specific models tolerate missing values in unrelated conditions.
-  paired <- a|b; d <- cbind(reference=as.integer(a[paired]),comparison=as.integer(b[paired]))
-  fit <- lmFit(y[eligible,paired,drop=FALSE],d); fit <- contrasts.fit(fit,c(-1,1)); fit <- eBayes(fit,trend=TRUE)
+  if (blocked) {
+   # Within-donor differences remove donor effects; one independent row per donor.
+   d <- matrix(1,nrow=length(subjects),ncol=1,dimnames=list(subjects,'comparison_minus_reference'))
+   fit <- lmFit(differences[eligible,,drop=FALSE],d)
+   abundance <- (y[,ib,drop=FALSE]+y[,ia,drop=FALSE])/2; abundance[!complete] <- NA_real_
+   fit$Amean <- rowMeans(abundance[eligible,,drop=FALSE],na.rm=TRUE)
+  } else {
+   selected <- a|b; d <- cbind(reference=as.integer(a[selected]),comparison=as.integer(b[selected]))
+   fit <- lmFit(y[eligible,selected,drop=FALSE],d); fit <- contrasts.fit(fit,c(-1,1))
+  }
+  fit <- eBayes(fit,trend=TRUE)
   p <- as.numeric(fit$p.value[,1]); valid <- is.finite(p) & fit$df.residual>0; positions <- which(eligible)[valid]
   tab$logFC[positions] <- fit$coefficients[valid,1]; tab$PValue[positions] <- p[valid]
   tab$FDR[positions] <- p.adjust(p[valid],'BH'); tab$test_status[positions] <- 'tested'
  } else tab$test_status[eligible] <- 'insufficient features for variance moderation'
- tab$significant <- !is.na(tab$FDR)&tab$FDR<fdr; tab$method <- rep('limma-trend',nrow(tab)); tab$direction <- rep(paste(pair[2],'minus',pair[1]),nrow(tab))
- name <- paste0(labels[[pair[1]]],'_vs_',labels[[pair[2]]]); folder <- file.path(out,name); dir.create(folder,showWarnings=FALSE)
+ tab$significant <- !is.na(tab$FDR)&tab$FDR<fdr; tab$method <- rep(if(blocked) 'paired limma-trend' else 'limma-trend',nrow(tab)); tab$direction <- rep(paste(pair[2],'minus',pair[1]),nrow(tab))
  write.csv(tab,file.path(folder,'all_results.csv'),row.names=FALSE,na=''); write.csv(tab[tab$significant,,drop=FALSE],file.path(folder,'significant_results.csv'),row.names=FALSE,na='')
- index[[length(index)+1]] <- data.frame(comparison=name,baseline=pair[1],comparison_condition=pair[2],method='limma-trend',reported_features=nrow(tab),tested_features=sum(!is.na(tab$PValue)),significant_features=sum(tab$significant),fdr=fdr,full_results=paste0(name,'/all_results.csv'),significant_results=paste0(name,'/significant_results.csv'))
+ index[[length(index)+1]] <- data.frame(comparison=name,baseline=pair[1],comparison_condition=pair[2],method=if(blocked) 'paired limma-trend' else 'limma-trend',reported_features=nrow(tab),tested_features=sum(!is.na(tab$PValue)),significant_features=sum(tab$significant),fdr=fdr,full_results=paste0(name,'/all_results.csv'),significant_results=paste0(name,'/significant_results.csv'))
 }
 write.csv(do.call(rbind,index),file.path(out,'results_index.csv'),row.names=FALSE)
 writeLines(capture.output(sessionInfo()),file.path(out,'R_session.txt'))

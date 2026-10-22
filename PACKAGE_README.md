@@ -1,11 +1,13 @@
 # fun_proteomics
 
-Analyze Bruker DDA-PASEF and DIA-PASEF data, or start with a protein quantification table. Get protein and gene matrices, all-versus-all comparisons, quality control, and detection benchmarks against a service provider. Every matrix is delivered as **CSV and TSV**.
+Analyze Bruker DDA-PASEF and DIA-PASEF data, or import a MaxQuant Excel workbook / protein quantification table. Get protein and gene matrices, all-versus-all comparisons, quality control, and detection benchmarks against a service provider. Every matrix is delivered as **CSV and TSV**.
 
 ```bash
 pip install fun_proteomics
 fun_proteomics setup --project /data/my-study
 ```
+
+**`--project` is your output folder.** `--outdir` is an equivalent setup option. The browser previews the full destination before saving: `PROJECT/results/final_results/matrices/` holds protein and gene CSV/TSV files.
 
 Already installed? `pip install --upgrade fun_proteomics` updates the launcher.
 [PyPI package](https://pypi.org/project/fun-proteomics/) · [Watch drag-and-drop setup](https://cfarkas.github.io/fun_proteomics/#videos)
@@ -17,6 +19,7 @@ Already installed? `pip install --upgrade fun_proteomics` updates the launcher.
 | --- | --- |
 | Try a small example | [Quick start](https://github.com/cfarkas/fun_proteomics/blob/main/docs/quick_start.md) |
 | Watch interactive setup | [Walkthrough videos](https://cfarkas.github.io/fun_proteomics/) · [transcripts](https://github.com/cfarkas/fun_proteomics/blob/main/docs/videos.md) |
+| Import MaxQuant or Bruker service LFQ, with paired donors | [Provider workbooks](https://github.com/cfarkas/fun_proteomics/blob/main/docs/provider_workbooks.md) |
 | Analyze your own data | [Set up a project](https://github.com/cfarkas/fun_proteomics/blob/main/docs/setup.md) |
 | Install analysis tools | [Installation](https://github.com/cfarkas/fun_proteomics/blob/main/docs/installation.md) |
 | Find matrices or understand comparisons | [Outputs](https://github.com/cfarkas/fun_proteomics/blob/main/docs/outputs.md) |
@@ -59,7 +62,7 @@ fun_proteomics check --config /data/my-study/config/run.json
 fun_proteomics run --config /data/my-study/config/run.json
 ```
 
-`check` validates inputs and explains the planned comparisons. `run` starts the saved analysis or continues it. Intensity comparisons assume independent biological replicates; confirm the design during setup.
+`check` validates inputs and explains the planned comparisons. `run` starts the saved analysis or continues it. Choose independent biological replicates or paired matrix comparisons with explicit donor IDs. Four conditions produce six comparisons at each feature level.
 
 ## Find results and continue
 

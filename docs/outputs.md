@@ -28,6 +28,7 @@ The `results/` directory is the run root. Its internal layout depends on the ana
 | Every condition comparison | `results_index.csv` / `.tsv`, linked from the report |
 | Imported matrix differential tables | `differential_expression/<protein\|gene>/<contrast>/` |
 | Imported matrix detection benchmark | `benchmark/detection_summary.csv` and `protein_membership.csv` |
+| Excel sheet, source column mapping, removed empty duplicates | `quality_control/import_audit.json` and `input_sample_mapping.csv/.tsv` |
 | Sample assignments and gene mapping audit | `quality_control/` for imported matrices; corresponding cohort reports for raw workflows |
 
 Both matrix formats preserve identical identifiers, values and missing cells. DIA and service intensity matrices contain abundances, not spectral counts. DDA protein counts are a different measurement and use count-based statistics. [Full output definitions](../OUTPUTS.md).
@@ -36,10 +37,10 @@ Both matrix formats preserve identical identifiers, values and missing cells. DI
 
 Each unordered condition pair is tested once. The table names identify baseline and comparison condition; positive logFC means higher abundance in the second condition. Three groups yield three protein contrasts and three gene contrasts when unambiguous gene mappings are available.
 
-Intensity analysis uses limma-trend on log2 positive intensities, no imputation, and at least two observed biological replicates in each condition by default. Missing or untestable features retain their status and blank p-values. BH FDR is calculated separately within each contrast and feature level. These models do not automatically adjust for repeated subjects or batches.
+Intensity analysis uses limma-trend on log2 positive intensities, no imputation, and at least two observed biological replicates in each condition by default. Missing or untestable features retain their status and blank p-values. BH FDR is calculated separately within each contrast and feature level. With an explicit `subject_column`, imported matrix comparisons use within-donor log2 differences. `detected_pairs` reports the number of complete observed pairs; unmatched values cannot satisfy the replicate threshold. Per-contrast `paired_samples.csv/.tsv` and `paired_log2_differences.csv/.tsv` show the matching and model input. No other batch adjustment is inferred.
 
 Gene matrices sum positive protein-group quantities assigned unambiguously to one gene. Ambiguous or incomplete mappings are reported and excluded from the rollup. This is not RNA expression or a separately controlled gene-identification FDR.
 
 ## Service benchmark
 
-A protein group is detected when its quantity is positive. The benchmark matches exact canonical groups and the same samples. It reports shared groups, pipeline-only groups, service-only groups, and pipeline minus service totals. The union row counts each group once across samples. More detections alone do not demonstrate better accuracy; database, grouping, transfer and filtering settings can differ.
+A protein group is detected when its quantity is positive. The benchmark matches exact canonical groups and the same samples. Incomplete groups reconstructed from clipped FASTA headers are excluded from both benchmark inputs. It reports shared groups, pipeline-only groups, service-only groups, and pipeline minus service totals. The union row counts each group once across samples. More detections alone do not demonstrate better accuracy; database, grouping, transfer and filtering settings can differ.
