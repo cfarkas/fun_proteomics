@@ -29,6 +29,7 @@ For SSH, add `--terminal` to setup. Sample tables use `sample_id,raw_path,condit
 ## Outputs and reuse
 
 - `results/final_results/START_HERE.html`: result dashboard.
+- `results/final_results/RAW_EXECUTION.html`: full execution report, conversion totals, direct MS2 and LFQ detections, study design, all contrasts and service benchmark.
 - `results/final_results/MATRICES.html`: protein and gene matrices, with CSV/TSV downloads.
 - `results/final_results/matrices/*_spectral_counts.csv` and `.tsv`: direct protein, peptide and unambiguous peptide-to-gene spectral counts. These are supporting evidence; all-pairs models use LFQ intensities.
 - `results/final_results/differential_expression/`: every unordered condition pair, independently for proteins and available unambiguous genes.

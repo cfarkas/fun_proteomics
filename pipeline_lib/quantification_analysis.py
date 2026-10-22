@@ -32,6 +32,8 @@ def write_dashboard(output, title='Proteomics results'):
                 row[field] = (path.parent/row[field]).relative_to(output).as_posix()
             comparisons.append(row)
     sections = []
+    if (output/'RAW_EXECUTION.html').is_file():
+        sections.append('<h2>Raw search execution</h2><p><a href="RAW_EXECUTION.html">Complete pipeline, sample design, detection totals, comparisons and service benchmark</a></p>')
     if comparisons:
         pd.DataFrame(comparisons).to_csv(output/'results_index.csv', index=False)
         export_matrix_formats(output/'results_index.csv')

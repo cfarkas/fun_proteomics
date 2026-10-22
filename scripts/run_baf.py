@@ -136,6 +136,8 @@ def main():
         search_checkpoint=read(searchdir/'run/search_checkpoint.json'),technical_aggregation='FragPipe experiment grouping', quantity=quantity,
         protein_fdr=.01,psm_fdr=.01,mbr=len(bio)>1,msbooster=False))
     if service_map is not None: save(qc/'service_import_audit.json',service_map.attrs)
+    from baf_reporting import write_execution_report
+    write_execution_report(temporary,frame,bio,audit,read(qc/'raw_search_provenance.json'))
     write_dashboard(temporary)
     (temporary/'FINAL_RESULTS_COMPLETE').write_text('complete\n')
     files=sorted(f for f in temporary.rglob('*') if f.is_file() and f.name!='OUTPUT_SHA256SUMS')
