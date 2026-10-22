@@ -55,3 +55,5 @@ FUN_PROTEOMICS_SCRATCH=/fast/scratch fun_proteomics --continue /data/my-baf-stud
 ```
 
 The launcher checks estimated free space and links the already verified mzML inputs. Converted spectra, search tables, logs and checkpoints stay in the project; only mzBIN/IonQuant caches use scratch. Successful searches remove those disposable caches, and completed searches remain reusable without them. Interrupted scratch caches are retained for inspection and their location is recorded in `results/intermediates/search/run/scratch_staging.json`. This changes storage placement, not search settings or the analysis design.
+
+IonQuant disables MaxLFQ for fewer than three biological experiments. One- and two-sample studies therefore export ordinary MS1 intensities and record `quantity: intensity`; studies with at least three biological samples use MaxLFQ. Technical injections do not increase that biological sample count. This follows [IonQuant’s documented small-study behavior](https://github.com/Nesvilab/IonQuant/blob/master/CHANGELOG.md).

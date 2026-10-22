@@ -139,6 +139,21 @@ class BafTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'Insufficient search scratch'):
                 with search_staging(self.root/'search',[source],[],self.root/'scratch'):pass
 
+    def test_small_studies_use_actual_intensity_without_claiming_maxlfq(self):
+        from baf_reporting import load_baf_abundance
+        run=self.root/'run';run.mkdir()
+        table=pd.DataFrame([{'Protein':'P1','Gene':'G1','S1 Intensity':20.,'S2 Intensity':30.}])
+        table.to_csv(run/'combined_protein.tsv',sep='\t',index=False)
+        matrix,_,mapping,quantity=load_baf_abundance(run,pd.DataFrame({'sample_id':['S1','S2']}))
+        self.assertEqual(quantity,'intensity');self.assertEqual(list(matrix.iloc[0]),[20.,30.])
+        self.assertTrue(mapping.quantity.eq('intensity').all())
+        for name,value in [('S1',200.),('S2',300.),('S3',400.)]:table[name+' MaxLFQ Intensity']=value
+        table['S3 Intensity']=40.
+        table.to_csv(run/'combined_protein.tsv',sep='\t',index=False)
+        matrix,_,mapping,quantity=load_baf_abundance(run,pd.DataFrame({'sample_id':['S1','S2','S3']}))
+        self.assertEqual(quantity,'maxlfq');self.assertEqual(list(matrix.iloc[0]),[200.,300.,400.])
+        self.assertTrue(mapping.quantity.eq('maxlfq').all())
+
     def test_vendor_dependencies_and_no_mixed_acquisition(self):
         raw=self.root/'sample.d';raw.mkdir()
         for name in ['analysis.baf','analysis.baf_xtr','Calibrator.ami','analysis.sqlite']:(raw/name).write_text('test')

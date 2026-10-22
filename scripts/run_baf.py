@@ -122,8 +122,8 @@ def main():
         print('Verified final matrices, comparisons and benchmark.');return
     temporary=output/'report_build';quarantine(temporary)
     pipeline_samples=bio.drop(columns=['service_sample'],errors='ignore')
-    quantity = 'maxlfq' if len(bio) > 1 else 'intensity'
-    matrix,annotations,mapping=load_matrix(searchdir/'run/combined_protein.tsv',pipeline_samples,quantity)
+    from baf_reporting import load_baf_abundance
+    matrix,annotations,mapping,quantity=load_baf_abundance(searchdir/'run',pipeline_samples)
     annotations=annotate_groups(annotations.reset_index(),matrix.index,cfg['fasta'])
     service=service_map=None
     if cfg.get('service_matrix'):

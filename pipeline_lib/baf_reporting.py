@@ -6,6 +6,13 @@ from final_results import peptide_counts, gene_counts, read, write
 from quantification import load_matrix, excluded_group
 
 
+def load_baf_abundance(run, samples):
+    """IonQuant disables MaxLFQ for fewer than three biological experiments."""
+    quantity = 'maxlfq' if len(samples) >= 3 else 'intensity'
+    matrix, annotations, mapping = load_matrix(Path(run)/'combined_protein.tsv', samples, quantity)
+    return matrix, annotations, mapping, quantity
+
+
 def export_spectral_counts(run, samples, annotations, output):
     run, output = Path(run), Path(output)
     matrices, qc = output/'matrices', output/'quality_control'
