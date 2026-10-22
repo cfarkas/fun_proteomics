@@ -21,7 +21,7 @@ jobs:
           python scripts/validate_distribution.py
           python -m pip install dist/*.whl
           sudo apt-get update
-          sudo apt-get install -y r-base r-base-dev r-bioc-limma r-bioc-edger r-cran-jsonlite r-cran-statmod r-cran-data.table
+          sudo apt-get install -y --no-install-recommends r-base r-base-dev r-bioc-limma r-bioc-edger r-cran-jsonlite r-cran-statmod r-cran-data.table
           bash scripts/install_differential_tools.sh /usr/bin/Rscript
       - name: Test the installed package
         env:

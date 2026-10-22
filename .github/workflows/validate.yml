@@ -13,7 +13,7 @@ jobs:
       - name: Install R and statistical dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y r-base r-base-dev python3.12 python3.12-venv libcurl4-openssl-dev libssl-dev libxml2-dev
+          sudo apt-get install -y --no-install-recommends r-base r-base-dev python3.12 python3.12-venv libcurl4-openssl-dev libssl-dev libxml2-dev
           bash scripts/install_differential_tools.sh /usr/bin/Rscript
       - name: Validate semantics and publication exclusions
         run: |
@@ -43,7 +43,7 @@ jobs:
       - name: Install pinned DIA reporting dependencies
         run: pip install -r modules/diapasef/requirements-lock.txt
       - name: Install intensity statistics
-        run: sudo apt-get update && sudo apt-get install -y r-base r-bioc-limma r-bioc-edger r-cran-jsonlite
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends r-base r-bioc-limma r-bioc-edger r-cran-jsonlite
       - name: Check real reporting code on synthetic DIA reports
         env:
           PROTEOMICS_RSCRIPT: /usr/bin/Rscript
@@ -71,7 +71,7 @@ jobs:
         run: |
           python -m pip install dist/*.whl
           sudo apt-get update
-          sudo apt-get install -y r-base r-base-dev r-bioc-limma r-bioc-edger r-cran-jsonlite r-cran-statmod r-cran-data.table
+          sudo apt-get install -y --no-install-recommends r-base r-base-dev r-bioc-limma r-bioc-edger r-cran-jsonlite r-cran-statmod r-cran-data.table
           bash scripts/install_differential_tools.sh /usr/bin/Rscript
       - name: Test installed commands, verified reuse, and damaged-output recovery
         env:
