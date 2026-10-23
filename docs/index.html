@@ -22,7 +22,18 @@ fun_proteomics setup --project &quot;$PWD/ubiquitin-study&quot; \
 <article class="panel launch" id="command-line"><h3>C) Full command-line options</h3><pre>fun_proteomics setup --non-interactive --project /data/my-study \
   --mode matrix --matrix /data/proteins.csv --samples /data/samples.csv \
   --independent-samples --normalization none \
-  --cpus 8 --memory-gib 32 --run</pre><p>For paired matrix/BAF data, replace <code>--independent-samples</code> with <code>--subject-column donor</code>. Add <code>--service-matrix /data/provider.tsv</code> for a matched service benchmark.</p><details><summary>Check and run saved settings</summary><pre>fun_proteomics check --config /data/my-study/config/run.json
+  --cpus 8 --memory-gib 32 --run</pre><p>Example input files (illustrative intensity values):</p>
+<p><strong><code>samples.csv</code></strong> — one row per sample:</p><pre><code class="language-csv">sample_id,condition
+C1,Control
+C2,Control
+T1,Treatment
+T2,Treatment</code></pre>
+<p><strong><code>proteins.csv</code></strong> — one row per protein group:</p><pre><code class="language-csv">Protein.Group,Genes,C1,C2,T1,T2
+P04637,TP53,120000,135000,260000,245000
+P60709,ACTB,480000,505000,490000,510000
+P02768,ALB,90000,85000,,100000</code></pre>
+<p>Each <code>sample_id</code> must exactly match a quantity column in <code>proteins.csv</code>. Use non-log-transformed intensities; leave missing measurements blank. <code>Genes</code> is optional: include gene symbols here or supply a matching FASTA with <code>GN=</code> annotations for gene-level results.</p>
+<p>For paired matrix/BAF data, add a <code>donor</code> column to the sample table and replace <code>--independent-samples</code> with <code>--subject-column donor</code>. Add <code>--service-matrix /data/provider.tsv</code> for a matched service benchmark.</p><details><summary>Check and run saved settings</summary><pre>fun_proteomics check --config /data/my-study/config/run.json
 fun_proteomics run --config /data/my-study/config/run.json</pre></details><p><a href="https://github.com/cfarkas/fun_proteomics/blob/main/docs/command_line.md">Complete options and raw DIA/DDA/BAF commands</a></p></article></section>
 <section class="panel" id="results"><h2>3. Find results and continue</h2><pre>my-study/START_HERE.html
 my-study/MATRICES.html</pre><p>The matrix catalogue links directly to CSV and TSV files. Detailed outputs live in <code>results/final_results/</code>.</p><pre>fun_proteomics --continue /data/my-study</pre><p>Verified native results and complete BAF searches are reused. Raw PASEF runs resume their Nextflow session.</p><p><a href="https://github.com/cfarkas/fun_proteomics/blob/main/docs/outputs.md">Output guide</a> · <a href="https://github.com/cfarkas/fun_proteomics/blob/main/docs/continuation.md">Integrity and recovery</a></p></section>

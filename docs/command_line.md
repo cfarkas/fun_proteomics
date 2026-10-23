@@ -29,6 +29,29 @@ fun_proteomics setup --non-interactive --project /data/my-study \
   --cpus 8 --memory-gib 32 --run
 ```
 
+Example input files (illustrative intensity values):
+
+**`samples.csv`** — one row per sample:
+
+```csv
+sample_id,condition
+C1,Control
+C2,Control
+T1,Treatment
+T2,Treatment
+```
+
+**`proteins.csv`** — one row per protein group:
+
+```csv
+Protein.Group,Genes,C1,C2,T1,T2
+P04637,TP53,120000,135000,260000,245000
+P60709,ACTB,480000,505000,490000,510000
+P02768,ALB,90000,85000,,100000
+```
+
+Each `sample_id` must exactly match a quantity column in `proteins.csv`. Use non-log-transformed intensities; leave missing measurements blank. `Genes` is optional: include gene symbols here or supply a matching FASTA with `GN=` annotations for gene-level results.
+
 ### Paired matrix samples and a service benchmark
 
 ```bash
@@ -38,7 +61,7 @@ fun_proteomics setup --non-interactive --project /data/paired-study \
   --service-matrix /data/provider.xlsx --run
 ```
 
-Use one biological quantity per donor and condition. A sample table can include `service_sample` aliases, or add `--service-samples /data/service_samples.csv` for a separate benchmark mapping. [Workbook formats](provider_workbooks.md).
+Add a `donor` column to `samples.csv`, with the same donor ID for samples from the same person. Use one biological quantity per donor and condition. A sample table can include `service_sample` aliases, or add `--service-samples /data/service_samples.csv` for a separate benchmark mapping. [Workbook formats](provider_workbooks.md).
 
 ### Raw BAF with technical injections and paired donors
 

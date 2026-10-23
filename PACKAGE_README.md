@@ -69,7 +69,30 @@ fun_proteomics setup --non-interactive --project /data/my-study \
   --cpus 8 --memory-gib 32 --run
 ```
 
-For paired matrix/BAF data, replace `--independent-samples` with `--subject-column donor`. Add `--service-matrix /data/provider.tsv` to benchmark a matching service table. [All command-line options and raw DIA/DDA/BAF examples](https://github.com/cfarkas/fun_proteomics/blob/main/docs/command_line.md).
+Example input files (illustrative intensity values):
+
+**`samples.csv`** — one row per sample:
+
+```csv
+sample_id,condition
+C1,Control
+C2,Control
+T1,Treatment
+T2,Treatment
+```
+
+**`proteins.csv`** — one row per protein group:
+
+```csv
+Protein.Group,Genes,C1,C2,T1,T2
+P04637,TP53,120000,135000,260000,245000
+P60709,ACTB,480000,505000,490000,510000
+P02768,ALB,90000,85000,,100000
+```
+
+Each `sample_id` must exactly match a quantity column in `proteins.csv`. Use non-log-transformed intensities; leave missing measurements blank. `Genes` is optional: include gene symbols here or supply a matching FASTA with `GN=` annotations for gene-level results.
+
+For paired matrix/BAF data, add a `donor` column to the sample table and replace `--independent-samples` with `--subject-column donor`. Add `--service-matrix /data/provider.tsv` to benchmark a matching service table. [All command-line options and raw DIA/DDA/BAF examples](https://github.com/cfarkas/fun_proteomics/blob/main/docs/command_line.md).
 
 To check and run an existing saved configuration:
 
