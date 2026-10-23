@@ -122,7 +122,6 @@ Completed native results are verified and reused. Native BAF checks converted sp
 | Import service Excel workbooks | [Provider workbooks](docs/provider_workbooks.md) |
 | Re-search raw BAF data | [BAF guide](docs/raw_baf.md) |
 | Compare pipeline and service detections | [Benchmarking](docs/benchmarking.md) |
-| Review the full EV_PPC execution and service comparisons | [Execution report](docs/validation.md) |
 | Analyze your own data | [Input and sample setup](docs/setup.md) |
 | Find matrices and comparisons | [Outputs](docs/outputs.md) |
 | Use advanced native Python or Nextflow settings | [Advanced reference](docs/advanced_reference.md) |

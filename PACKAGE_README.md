@@ -122,7 +122,6 @@ Completed native results are verified and reused. Native BAF checks converted sp
 | Import service Excel workbooks | [Provider workbooks](https://github.com/cfarkas/fun_proteomics/blob/main/docs/provider_workbooks.md) |
 | Re-search raw BAF data | [BAF guide](https://github.com/cfarkas/fun_proteomics/blob/main/docs/raw_baf.md) |
 | Compare pipeline and service detections | [Benchmarking](https://github.com/cfarkas/fun_proteomics/blob/main/docs/benchmarking.md) |
-| Review the full EV_PPC execution and service comparisons | [Execution report](https://github.com/cfarkas/fun_proteomics/blob/main/docs/validation.md) |
 | Analyze your own data | [Input and sample setup](https://github.com/cfarkas/fun_proteomics/blob/main/docs/setup.md) |
 | Find matrices and comparisons | [Outputs](https://github.com/cfarkas/fun_proteomics/blob/main/docs/outputs.md) |
 | Use advanced native Python or Nextflow settings | [Advanced reference](https://github.com/cfarkas/fun_proteomics/blob/main/docs/advanced_reference.md) |
