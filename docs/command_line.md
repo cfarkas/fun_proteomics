@@ -63,20 +63,39 @@ fun_proteomics setup --non-interactive --project /data/paired-study \
 
 Add a `donor` column to `samples.csv`, with the same donor ID for samples from the same person. Use one biological quantity per donor and condition. A sample table can include `service_sample` aliases, or add `--service-samples /data/service_samples.csv` for a separate benchmark mapping. [Workbook formats](provider_workbooks.md).
 
-### Raw BAF with technical injections and paired donors
+**`samples.csv`** — paired version; one row per donor and condition:
 
-```bash
-fun_proteomics install --baf
-fun_proteomics setup --non-interactive --project /data/baf-study \
-  --mode baf --raw-root /data/raw --samples /data/acquisitions.csv \
-  --fasta /data/search_targets_contaminants_decoys.fasta \
-  --msfragger-zip /data/tools/MSFragger-4.4.1.zip \
-  --ionquant-zip /data/tools/IonQuant-1.11.20.zip \
-  --diatracer-zip /data/tools/diatracer-2.2.1.zip \
-  --subject-column donor --cpus 16 --memory-gib 64 --run
+```csv
+sample_id,condition,donor
+C1,Control,D1
+T1,Treatment,D1
+C2,Control,D2
+T2,Treatment,D2
 ```
 
-`acquisitions.csv` contains `sample_id,raw_path,condition,biological_sample,donor`. Technical injections share `biological_sample`. For independent samples, replace `--subject-column donor` with `--independent-samples`. Registered archives are obtained separately. [Full BAF guide](raw_baf.md).
+**`provider.xlsx`** — preview of an Excel quantity sheet:
+
+```csv
+Protein IDs,Gene names,LFQ intensity C1,LFQ intensity T1,LFQ intensity C2,LFQ intensity T2
+P04637,TP53,120000,260000,135000,245000
+P60709,ACTB,480000,490000,505000,510000
+```
+
+**`service_samples.csv`** — optional mapping when a provider instead uses Lab_C1/Lab_C2/Lab_T1/Lab_T2:
+
+```csv
+sample_id,service_sample
+C1,Lab_C1
+C2,Lab_C2
+T1,Lab_T1
+T2,Lab_T2
+```
+
+A mapping uses the sample IDs from your own sample table. In the paired example above, service names already match and no mapping is needed.
+
+### Raw BAF
+
+Use the [complete BAF chapter](raw_baf.md) for its embedded video, acquisition table, search FASTA, service table, terminal/scripted commands and continuation.
 
 ### Raw DIA-PASEF
 
@@ -87,7 +106,26 @@ fun_proteomics setup --non-interactive --project /data/dia-study \
   --cpus 16 --memory-gib 64 --run
 ```
 
-Use a target-only FASTA with `GN=` annotations. Native DIA execution uses Nextflow. [Raw sample tables and inputs](setup.md).
+**`samples.csv`** — raw PASEF version; paths are relative to the selected raw folder:
+
+```csv
+sample_id,condition,replicate,raw_path
+C1,Control,1,C1.d
+C2,Control,2,C2.d
+T1,Treatment,1,T1.d
+T2,Treatment,2,T2.d
+```
+
+**`human_targets.fasta`** — header/sequence format illustration only:
+
+```fasta
+>sp|DEMO001|EXAMPLE_A GN=GENE_A
+MPEPTIDEK
+>sp|DEMO002|EXAMPLE_B GN=GENE_B
+MPEPTIDER
+```
+
+Use a complete target-only FASTA with `GN=` annotations; the tiny sequences above only show the format. Native DIA execution uses Nextflow. [Raw sample tables and inputs](setup.md).
 
 ### Raw DDA-PASEF
 
@@ -101,7 +139,20 @@ fun_proteomics setup --non-interactive --project /data/dda-study \
   --independent-samples --cpus 16 --memory-gib 64 --run
 ```
 
-Native DDA execution uses Nextflow. Advanced DDA+, phosphoproteomics and HLA settings use the [advanced reference](advanced_reference.md).
+**`search_targets_contaminants_decoys.fasta`** — format illustration only; use a complete validated search database:
+
+```fasta
+>sp|DEMO001|EXAMPLE_A GN=GENE_A
+MPEPTIDEK
+>rev_sp|DEMO001|EXAMPLE_A GN=GENE_A
+KEDITPEPM
+>contam_DEMO
+MPEPTIDER
+>rev_contam_DEMO
+REDITPEPM
+```
+
+The raw sample table has the same shape shown in the DIA example above. Native DDA execution uses Nextflow. Advanced DDA+, phosphoproteomics and HLA settings use the [advanced reference](advanced_reference.md).
 
 ## Setup flags
 
@@ -134,6 +185,20 @@ fun_proteomics check --config /data/my-study/config/run.json
 fun_proteomics run --config /data/my-study/config/run.json
 fun_proteomics status --project /data/my-study
 fun_proteomics --continue /data/my-study
+```
+
+**`config/run.json`** — minimal matrix configuration; normally created by setup:
+
+```json
+{
+  "fun_proteomics_project": 1,
+  "project": "/data/my-study",
+  "mode": "matrix",
+  "matrix": "/data/proteins.csv",
+  "samples": "/data/samples.csv",
+  "independent_samples": true,
+  "normalization": "none"
+}
 ```
 
 For an existing R installation, global runtime options come before the subcommand:

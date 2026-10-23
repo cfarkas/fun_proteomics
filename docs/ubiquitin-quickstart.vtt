@@ -1,0 +1,43 @@
+WEBVTT
+
+00:00:00.074 --> 00:00:06.419
+Choose a new output folder. This walkthrough uses the downloaded 12-sample ubiquitin-affinity dataset.
+
+00:00:06.419 --> 00:00:11.677
+Browse to the extracted example folder and select proteins.csv. This is the measured protein quantity table.
+
+00:00:11.677 --> 00:00:17.628
+Select samples.csv to prefill the four conditions and their experimental replicates.
+
+00:00:17.628 --> 00:00:24.157
+Discover samples. Review three cards in each condition: Ctrl, Ubi1, Ubi4 and Ubi6.
+
+00:00:24.157 --> 00:00:29.686
+Drag a card to Unassigned to exclude it. Here we will restore it so all 12 samples remain included.
+
+00:00:29.686 --> 00:00:34.825
+Drag the card back into its condition. Each card also has a condition dropdown.
+
+00:00:34.825 --> 00:00:40.029
+Confirm independent experimental replicates for this tutorial. The source design supplies no donor pairing.
+
+00:00:40.029 --> 00:00:46.278
+Keep all condition pairs and no additional normalization for these LFQ quantities. Missing values remain missing.
+
+00:00:46.278 --> 00:00:53.463
+Check inputs: 12 samples, six condition pairs, 2,902 protein-group rows and 2,696 unambiguous gene rows.
+
+00:00:53.463 --> 00:00:59.502
+Save configuration and check, then click Run / continue analysis. The settings and sample assignments stay in your output folder.
+
+00:00:59.502 --> 00:01:08.328
+The real matrix analysis is running. It creates six protein and six gene comparisons; no raw spectrum search is needed.
+
+00:01:08.328 --> 00:01:14.393
+Analysis complete. Open the result dashboard or go directly to the CSV and TSV matrices.
+
+00:01:14.393 --> 00:01:23.307
+The matrix catalogue provides protein and gene quantities in both CSV and TSV. The result dashboard links every comparison and QC plot.
+
+00:01:23.307 --> 00:01:29.314
+Run / continue verifies and reuses the completed results. Keep this project folder to return to the same analysis.

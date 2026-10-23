@@ -23,12 +23,13 @@ wget https://github.com/cfarkas/fun_proteomics/releases/download/v0.9.0/ubiquiti
 wget https://github.com/cfarkas/fun_proteomics/releases/download/v0.9.0/ubiquitin-lfq-example.tar.gz.sha256
 sha256sum -c ubiquitin-lfq-example.tar.gz.sha256
 tar -xzf ubiquitin-lfq-example.tar.gz
-fun_proteomics setup --project "$PWD/ubiquitin-study" \
-  --mode matrix --matrix "$PWD/ubiquitin-lfq-example/proteins.csv" \
-  --samples "$PWD/ubiquitin-lfq-example/samples.csv"
 ```
 
-The browser opens with the dataset selected. Discover the samples, review the four condition columns, confirm the replicate design, then save and run. This analyzes real quantified data; it does not repeat a raw spectrum search. [Step-by-step quick start, terminal and scripted versions](docs/quick_start.md).
+Watch the interactive walkthrough below. Start the browser once with `fun_proteomics setup`, then choose the extracted files and a new **output/project folder**, such as `ubiquitin-study`. The video shows file selection, condition assignment, all-pairs analysis, CSV/TSV downloads and continuation.
+
+https://github.com/user-attachments/assets/bcd925bb-c021-4ccb-92fd-8ac3f4603049
+
+This recording uses the downloaded real data and runs the complete matrix analysis. It needs no raw spectrum search. [Step-by-step quick start, terminal and scripted versions](docs/quick_start.md).
 
 ## Set up your analysis
 
@@ -36,11 +37,7 @@ Choose **one** of the following launch methods. **`--project` is your output fol
 
 ### A) Interactive settings
 
-```bash
-fun_proteomics setup --project /data/my-study
-```
-
-Keep the terminal open. In the local browser:
+Follow the embedded video above. Open the browser with `fun_proteomics setup`, then set your output folder in the page. Keep the terminal open. In the local browser:
 
 1. Choose a matrix, raw-data folder or previous run, and review the output folder.
 2. Click **Discover samples**. Drag sample cards into condition columns. Add or rename conditions; move excluded samples to **Unassigned**. A sample table can prefill assignments.
@@ -94,6 +91,14 @@ Each `sample_id` must exactly match a quantity column in `proteins.csv`. Use non
 
 For paired matrix/BAF data, add a `donor` column to the sample table and replace `--independent-samples` with `--subject-column donor`. Add `--service-matrix /data/provider.tsv` to benchmark a matching service table. [All command-line options and raw DIA/DDA/BAF examples](docs/command_line.md).
 
+**`provider.tsv`** — optional service quantities using the same sample names:
+
+```tsv
+Protein.Group	Genes	C1	C2	T1	T2
+P04637	TP53	120000	135000	260000	245000
+P60709	ACTB	480000	505000	490000	510000
+```
+
 To check and run an existing saved configuration:
 
 ```bash
@@ -102,6 +107,24 @@ fun_proteomics run --config /data/my-study/config/run.json
 ```
 
 All three methods save `config/run.json`. Browser sample assignments are also saved as CSV and TSV.
+
+<details>
+<summary>What the saved configuration looks like</summary>
+
+**`config/run.json`** — generated excerpt; setup fills the complete file:
+
+```json
+{
+  "project": "/data/my-study",
+  "mode": "matrix",
+  "matrix": "/data/proteins.csv",
+  "samples": "/data/samples.csv"
+}
+```
+
+Create and review this file through setup. [Complete configuration example](docs/input_files.md#saved-configuration).
+
+</details>
 
 ## Results and continuation
 
@@ -122,6 +145,7 @@ Completed native results are verified and reused. Native BAF checks converted sp
 | Import service Excel workbooks | [Provider workbooks](docs/provider_workbooks.md) |
 | Re-search raw BAF data | [BAF guide](docs/raw_baf.md) |
 | Compare pipeline and service detections | [Benchmarking](docs/benchmarking.md) |
+| See file contents before preparing inputs | [Input file previews](docs/input_files.md) |
 | Analyze your own data | [Input and sample setup](docs/setup.md) |
 | Find matrices and comparisons | [Outputs](docs/outputs.md) |
 | Use advanced native Python or Nextflow settings | [Advanced reference](docs/advanced_reference.md) |

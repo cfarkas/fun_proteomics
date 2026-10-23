@@ -4,9 +4,11 @@ Choose browser setup, terminal questions or explicit command-line options. All t
 
 ## A) Interactive settings
 
-```bash
-fun_proteomics setup --project /data/my-study
-```
+Watch the browser walkthrough: select files and an output folder, assign conditions, run, find matrices, and continue.
+
+https://github.com/user-attachments/assets/bcd925bb-c021-4ccb-92fd-8ac3f4603049
+
+Open the browser once with `fun_proteomics setup`, then choose your **output/project folder** in the page. The video uses the [real quick-start download](quick_start.md); follow the same steps with your own files.
 
 Setup opens in your browser on a local, automatically selected port. Keep the launcher terminal open while configuring. Copy the entire URL, including its session code, when opening another browser. Analyses launched with **Run / continue** keep running if you close the setup server; reopen the same project to view progress.
 
@@ -38,7 +40,7 @@ Click **Discover samples** after selecting a matrix or raw-data folder. Assign s
 
 Only assigned samples enter matrices, comparisons and service benchmarks. Conditions are never inferred from filenames. For plain matrices, discovery lists numeric candidate columns; review them and leave annotation columns unassigned. Use a sample table for explicit mappings, including all-missing columns. FragPipe suffixes and MaxQuant `LFQ intensity SAMPLE` / `Intensity SAMPLE` prefixes are recognized automatically. Excel cover pages are skipped; use **Excel worksheet** or `--sheet` when a workbook contains more than one eligible quantity sheet. [Provider workbook details](provider_workbooks.md).
 
-An optional matrix sample table needs:
+An optional **`samples.csv`** needs:
 
 ```csv
 sample_id,condition
@@ -48,9 +50,48 @@ T1,Treatment
 T2,Treatment
 ```
 
+**`proteins.csv`** — illustrative quantities; sample names match the table above:
+
+```csv
+Protein.Group,Genes,C1,C2,T1,T2
+P04637,TP53,120000,135000,260000,245000
+P60709,ACTB,480000,505000,490000,510000
+P02768,ALB,90000,85000,,100000
+```
+
 Sample IDs must match matrix columns. A protein table needs a recognized identifier such as `Protein.Group`; optional `Genes` and `Protein.Names` are retained. Use one cohort or tissue type per matrix analysis. A separate service mapping can supply `sample_id,service_sample` when provider names differ.
 
+**`service_samples.csv`** — optional service aliases for these sample IDs:
+
+```csv
+sample_id,service_sample
+C1,Lab_C1
+C2,Lab_C2
+T1,Lab_T1
+T2,Lab_T2
+```
+
+**`service.csv`** — illustrative quantities matching the aliases above:
+
+```csv
+Protein.Group,Genes,Lab_C1,Lab_C2,Lab_T1,Lab_T2
+P04637,TP53,118000,132000,255000,240000
+P60709,ACTB,475000,500000,485000,505000
+```
+
 Raw sample tables additionally need `raw_path`; paths can be absolute or relative to the selected raw-data folder. Alternatively, **Scan .d folders** discovers acquisition cards for the same drag-and-drop board. No condition is inferred from a filename. Blank acquisitions are excluded from the scan. You can rename sample IDs; DDA identifiers must start with a letter and contain only letters, digits and underscores.
+
+**`samples.csv`** — raw PASEF sample-table version:
+
+```csv
+sample_id,condition,replicate,raw_path
+C1,Control,1,C1.d
+C2,Control,2,C2.d
+T1,Treatment,1,T1.d
+T2,Treatment,2,T2.d
+```
+
+For BAF biological-sample grouping, use the [acquisition table in the complete BAF chapter](raw_baf.md#1-install-and-gather-inputs).
 
 All-versus-all testing is the default. Three conditions produce three unique comparisons; four produce six. Confirm that each sample is from a different patient or independent biological replicate. Original replicate labels are retained in the normalized matrix sample sheet; unique replicate numbers are used for the independent design. For repeated donors in matrix imports or native BAF, select **Paired comparisons** and specify the donor column, or enter donor IDs on the sample cards. The model uses within-donor log2 differences; at least two complete pairs per feature are required. Aggregate technical injections before matrix import. In native BAF, assign technical injections the same biological sample ID; the workflow groups them before statistics. Other complex repeated-measures designs still need a tailored model.
 
@@ -58,11 +99,41 @@ DIA and imported intensity tables use log2 positive quantities with limma-trend,
 
 Supply the matching FASTA with `GN=` annotations when gene symbols are absent. Ambiguous gene assignments remain visible in the audit and are excluded from gene rollups. A service benchmark reports detection gains and losses; it is separate from differential abundance.
 
+**`targets.fasta`** — gene-annotation format illustration; use your full matching database:
+
+```fasta
+>sp|DEMO001|EXAMPLE_A GN=GENE_A
+MPEPTIDEK
+>sp|DEMO002|EXAMPLE_B GN=GENE_B
+MPEPTIDER
+```
+
 ### 3. Save and run
 
 **Check inputs** previews sample numbers, groups, comparisons and gene availability without saving. **Save configuration and check** saves `PROJECT/config/run.json` and the full assignment audit as `config/sample_assignments.csv` and `.tsv`. The audit includes Unassigned samples marked `included=false`; the analysis uses only assigned rows. Draft settings can be corrected before the first launch, with earlier versions retained in `config/backups/`. After launch, use a new project for a changed design. **Run / continue analysis** launches the same native Python or Nextflow code used from the terminal. Missing tools produce an actionable error in the progress log.
 
 **Stop analysis** requests a stop and preserves inputs and outputs. Use Run / continue after resolving the interruption. Changed saved inputs are rejected rather than silently reused; use a new project for a changed analysis.
+
+**`config/sample_assignments.csv`** — selected audit columns; setup also writes TSV:
+
+```csv
+sample_id,condition,included
+C1,Control,True
+C2,Control,True
+T1,Treatment,True
+Unused,,False
+```
+
+**`config/run.json`** — generated excerpt; use setup to write the complete configuration:
+
+```json
+{
+  "project": "/data/my-study",
+  "mode": "matrix",
+  "matrix": "/data/proteins.csv",
+  "samples": "/data/samples.csv"
+}
+```
 
 ## B) Terminal questions
 

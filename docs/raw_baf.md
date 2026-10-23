@@ -1,59 +1,142 @@
-# Raw BAF re-search
+# Raw BAF: one complete workflow
 
-Choose **Raw BAF · Impact/QTOF** in setup for conventional Bruker DDA acquisitions containing `analysis.baf`. This route converts vendor centroid MS1 and MS2 spectra to indexed mzML, searches with MSFragger/FragPipe, and quantifies MS1 abundance with IonQuant MaxLFQ. It runs through native Python. PASEF continues through Nextflow.
+Use this chapter for conventional Bruker Impact/QTOF DDA acquisitions containing `analysis.baf`. The native Python workflow converts MS1/MS2 spectra, runs FragPipe/MSFragger, quantifies with IonQuant, and exports protein/gene matrices and all condition pairs. For PASEF, use the [DDA/DIA commands](command_line.md#raw-dia-pasef).
+
+## 1. Install and gather inputs
 
 ```bash
 pip install --upgrade fun_proteomics
 fun_proteomics install --conda
 fun_proteomics install --baf
-fun_proteomics setup --mode baf --project /data/my-baf-study
 ```
 
-`--project` is the output folder. Select the raw folder, discover acquisitions, and drag each card into its condition. Every acquisition has a unique analysis ID. Give technical injections from the same biological sample the **same biological sample ID**; they share one FragPipe experiment. For donors measured across conditions, select paired comparisons and enter each donor ID. Technical injections never increase the biological replicate count.
+You need your complete `.d` folders, a matching search FASTA with `GN=` annotations, contaminants and `rev_` decoys, and registered MSFragger 4.4.1, IonQuant 1.11.20 and diaTracer 2.2.1 ZIP archives. Select these archives during setup; they retain their own licenses.
 
-Select a human or other appropriate search FASTA containing `GN=` gene annotations, contaminants and matching `rev_` decoys, plus the registered MSFragger, IonQuant and diaTracer archives listed in [installation](installation.md). An existing prepared FASTA can be reused. Registered tools and the Bruker reader are separate dependencies; the repository's MIT license does not replace their licenses.
+Keep each acquisition folder intact; the files inside it are binary instrument data:
 
-Supply the service LFQ workbook, CSV or TSV in the same setup screen to benchmark detections automatically. The service table must contain one quantity per biological sample. A sample table can provide `service_sample` aliases; an optional separate service mapping is also supported. Each technical injection of a biological sample must agree on condition, donor and service alias.
+```text
+raw/
+  D1_CTL_R1.d/
+    analysis.baf
+    ...other original acquisition components...
+  D1_CTL_R2.d/
+  D1_Treatment_R1.d/
+```
 
-A scripted launch uses the same saved configuration:
+**`acquisitions.csv`** — optional sample assignments; illustrative rows:
+
+```csv
+sample_id,raw_path,condition,biological_sample,donor
+D1_CTL_R1,D1_CTL_R1.d,Control,D1_CTL,D1
+D1_CTL_R2,D1_CTL_R2.d,Control,D1_CTL,D1
+D1_Treatment_R1,D1_Treatment_R1.d,Treatment,D1_Treatment,D1
+D2_CTL_R1,D2_CTL_R1.d,Control,D2_CTL,D2
+D2_Treatment_R1,D2_Treatment_R1.d,Treatment,D2_Treatment,D2
+```
+
+`raw_path` is relative to the raw folder or absolute. Technical injections share `biological_sample`. Paired samples share `donor` across conditions. Technical injections do not increase the biological replicate count. Omit `donor` for an independent design.
+
+<details>
+<summary>Search FASTA format</summary>
+
+**`search.fasta`** — format illustration only:
+
+```fasta
+>sp|DEMO001|EXAMPLE_A GN=GENE_A
+MPEPTIDEK
+>rev_sp|DEMO001|EXAMPLE_A GN=GENE_A
+KEDITPEPM
+>contam_DEMO
+MPEPTIDER
+>rev_contam_DEMO
+REDITPEPM
+```
+
+Use a complete, validated organism database with matching decoys. These tiny demonstration sequences are not an analysis database. The advanced database setup can prepare a suitable search FASTA.
+
+</details>
+
+## 2. Configure in the browser
+
+The embedded recording shows condition assignment, technical-injection grouping and donor pairing. Its raw files are synthetic placeholders, so it demonstrates setup only.
+
+https://github.com/user-attachments/assets/a422425b-a9ad-4b8b-929f-b2bb9255a20e
+
+Open setup with `fun_proteomics setup --mode baf`, then:
+
+1. Choose the **output/project folder** and raw-data folder.
+2. Click **Discover samples** and drag acquisitions into conditions, or import the sample table above.
+3. Set biological sample IDs. Choose independent replicates or paired donors, and select the FASTA and registered tools.
+4. Optionally select service quantification, then **Save configuration and check** and **Run / continue analysis**.
+
+The optional service table needs one column per **biological sample**, after the service has combined any technical injections:
+
+**`service.csv`** — illustrative biological-sample LFQ quantities:
+
+```csv
+Protein.Group,Genes,D1_CTL,D1_Treatment,D2_CTL,D2_Treatment
+P04637,TP53,120000,260000,135000,245000
+P60709,ACTB,480000,490000,505000,510000
+```
+
+For Excel sheets or different service sample names, use the [service benchmark guide](benchmarking.md), which includes workbook and mapping previews.
+
+## 3. Terminal or scripted launch
+
+For terminal questions, including SSH:
 
 ```bash
-fun_proteomics run --config /data/my-baf-study/config/run.json
+fun_proteomics setup --terminal --mode baf --project /data/my-baf-study --run
+```
+
+<details>
+<summary>Full command-line alternative</summary>
+
+For a paired launch using the files above:
+
+```bash
+fun_proteomics setup --non-interactive --mode baf --project /data/my-baf-study \
+  --raw-root /data/raw --samples /data/acquisitions.csv --fasta /data/search.fasta \
+  --msfragger-zip /data/tools/MSFragger-4.4.1.zip \
+  --ionquant-zip /data/tools/IonQuant-1.11.20.zip \
+  --diatracer-zip /data/tools/diatracer-2.2.1.zip \
+  --subject-column donor --service-matrix /data/service.csv \
+  --cpus 16 --memory-gib 64 --run
+```
+
+`--project` is the output folder. Use `--independent-samples` instead of `--subject-column donor` for an independent design. Omit `--service-matrix` when no service table is available.
+
+</details>
+
+## 4. Open results and continue
+
+| Open inside your project | What you get |
+| --- | --- |
+| `START_HERE.html` | All comparisons, quality control and service benchmark. |
+| `MATRICES.html` | Protein/gene LFQ and separate protein/peptide/gene spectral counts, each in CSV and TSV. |
+| `results/final_results/RAW_EXECUTION.html` | Search settings, conversion totals, detection counts and execution evidence. |
+
+Four conditions produce six protein and six gene comparisons when gene annotations are available. The models use LFQ abundance. See [output table previews](outputs.md#table-previews).
+
+```bash
 fun_proteomics --continue /data/my-baf-study
 ```
 
-For SSH, add `--terminal` to setup. Sample tables use `sample_id,raw_path,condition,biological_sample,donor,service_sample`; `donor` and `service_sample` are optional for independent samples with matching names. Specify `--subject-column donor` for pairing. `--python /path/to/python` selects an existing runtime with pyBaf2Sql and psims; otherwise the runtime installed by `install --baf` is used.
+Keep the entire project. Continuation verifies source components, conversions and complete search reports; valid work is reused. Damaged conversions are regenerated, and incomplete attempts are preserved before rebuilding. Changed inputs or analysis settings require a new project. Original acquisition folders are read from isolated copies.
 
-[Watch the paired BAF setup walkthrough](https://cfarkas.github.io/fun_proteomics/#baf-video). Its synthetic files demonstrate setup only; they are never searched.
+<details>
+<summary>Search defaults, supported data and optional fast scratch</summary>
 
-## Outputs and reuse
+The search uses trypsin, up to two missed cleavages, peptide length at least seven, fixed carbamidomethyl C, variable oxidation M and protein N-terminal acetylation. Initial precursor/fragment tolerances are ±20 ppm / 0.05 Da; MSFragger calibrates and optimizes them. Protein and PSM filtering use 1% FDR. IonQuant MBR uses 1% ion-transfer FDR; MSBooster is disabled. Submitted settings and optimized values are retained in the search provenance and log. LFQ can include match-between-runs transfers; direct MS2 spectral counts are reported separately.
 
-- `results/final_results/START_HERE.html`: result dashboard.
-- `results/final_results/RAW_EXECUTION.html`: full execution report, conversion totals, direct MS2 and LFQ detections, study design, all contrasts and service benchmark.
-- `results/final_results/MATRICES.html`: protein and gene matrices, with CSV/TSV downloads.
-- `results/final_results/matrices/*_spectral_counts.csv` and `.tsv`: direct protein, peptide and unambiguous peptide-to-gene spectral counts. These are supporting evidence; all-pairs models use LFQ intensities.
-- `results/final_results/differential_expression/`: every unordered condition pair, independently for proteins and available unambiguous genes.
-- `results/final_results/benchmark/`: matched service detection summaries, gains/losses, sample mapping and group completeness audit, in CSV and TSV.
-- `results/inputs/`: acquisition-to-biological-sample mapping, source provenance and MS1/MS2 conversion counts.
-- `results/intermediates/mzML/`: converted spectra, per-acquisition logs, hashes and isolated vendor input copies.
-- `results/intermediates/search/run/`: complete FragPipe search and LFQ outputs, logs, workflow and manifest.
+MaxLFQ needs at least three biological samples; smaller studies export ordinary MS1 intensity and label it accordingly. Technical injections do not increase that count; see the [IonQuant changelog](https://github.com/Nesvilab/IonQuant/blob/master/CHANGELOG.md). Only conventional centroid DDA BAF is supported; bbCID/DIA BAF, profile-only data and MGF-only inputs cannot supply this MS1 LFQ workflow. Empty scans are audited, and corrupt or unsupported spectra fail validation.
 
-Continuation hashes the BAF components, calibration inputs, converter library, mzML, search inputs and required search reports. Successful conversions and complete matching searches are reused. A damaged conversion is regenerated; an incomplete search is preserved under `previous_attempts/` and rerun. Changed source data or settings require a new project. Original acquisition directories are never opened for writing. Empty centroid scans are omitted with their original IDs and MS levels recorded; no peaks are invented. A nonempty MS2 scan referring to an empty MS1 parent is rejected. Conversion fails on unsupported scan modes, missing centroid arrays, missing precursors or corrupt/truncated spectra.
-
-The default closed search uses trypsin, up to two missed cleavages, peptide length at least seven, initial precursor tolerance ±20 ppm and fragment tolerance 0.05 Da. MSFragger calibration and parameter optimization select final tolerances/peak filtering from the data; the delivered fragger.params records submitted settings, and pipeline.log records the optimized values actually used. Carbamidomethyl C is fixed; oxidation M and protein N-terminal acetylation are variable. Protein and PSM filtering use 1% FDR. MSBooster is disabled for this non-PASEF preset. IonQuant MBR uses its 1% ion transfer FDR; the exact workflow is delivered with each search. These settings are recorded rather than adjusted to maximize a provider benchmark.
-
-MS1 LFQ includes transferred quantifications when MBR is enabled. It is not a count of independently identified proteins. Provider databases, search settings, protein inference, FDR and transfer rules can differ. See [service benchmarking](benchmarking.md).
-
-Only conventional DDA BAF scan modes are supported. bbCID/DIA BAF and profile-only BAF fail explicitly. MGF exports lack the MS1 data needed for this LFQ route. See the [FragPipe input-format guidance](https://fragpipe.nesvilab.org/docs/tutorial_fragpipe.html), [pyBaf2Sql reader](https://github.com/gtluu/pyBaf2Sql), and [TIMSCONVERT methods](https://doi.org/10.1093/bioinformatics/btac419).
-
-Converted mzML files are linked into the search staging folder on the same filesystem to avoid a second full data copy. Other filesystems fall back to a verified copy. Checksums are verified before and after search. Vendor acquisitions always use independent copies so SDK caches cannot modify the original acquisition.
-
-For slow shared storage, optionally place disposable search caches on a fast local disk:
+For slow shared storage, keep disposable caches on a fast disk:
 
 ```bash
 FUN_PROTEOMICS_SCRATCH=/fast/scratch fun_proteomics --continue /data/my-baf-study
 ```
 
-The launcher checks estimated free space and links the already verified mzML inputs. Converted spectra, search tables, logs and checkpoints stay in the project; only mzBIN/IonQuant caches use scratch. Successful searches remove those disposable caches, and completed searches remain reusable without them. Interrupted scratch caches are retained for inspection and their location is recorded in `results/intermediates/search/run/scratch_staging.json`. This changes storage placement, not search settings or the analysis design.
+Converted spectra and complete search outputs stay in the project. Successful runs remove disposable scratch caches. Use `--python /path/to/python` only to select an existing converter runtime instead of the one installed above.
 
-IonQuant disables MaxLFQ for fewer than three biological experiments. One- and two-sample studies therefore export ordinary MS1 intensities and record `quantity: intensity`; studies with at least three biological samples use MaxLFQ. Technical injections do not increase that biological sample count. This follows [IonQuant’s documented small-study behavior](https://github.com/Nesvilab/IonQuant/blob/master/CHANGELOG.md).
+</details>

@@ -21,24 +21,50 @@ tar -xzf ubiquitin-lfq-example.tar.gz
 
 The archive is smaller than 1 MB. It contains `proteins.csv` / `.tsv`, `samples.csv` / `.tsv`, original upstream data, a reproducible export script, checksums, citation and the upstream Artistic-2.0 license. The measured LFQ values are unchanged. Reverse, contaminant and site-only flags are retained and filtered by the importer.
 
+<details>
+<summary>Preview the downloaded input files</summary>
+
+**`samples.csv`** — four selected rows; the full file contains all 12 samples:
+
+```csv
+sample_id,condition,replicate
+Ctrl_1,Ctrl,1
+Ubi1_1,Ubi1,1
+Ubi4_1,Ubi4,1
+Ubi6_1,Ubi6,1
+```
+
+**`proteins.csv`** — three actual rows and selected columns, reordered for this preview:
+
+```csv
+Protein.Group,Genes,Ctrl_1,Ubi1_1,Ubi4_1,Ubi6_1
+Q99798;A2A274,ACO2,25905000.0,26919000.0,26040000.0,16447000.0
+A6NDG6;H3BV17,PGP,186950000.0,188320000.0,214240000.0,212640000.0
+B4E241;P84103,SFRS3;SRSF3,261820000.0,245840000.0,367490000.0,244180000.0
+```
+
+Use the full downloaded files for analysis. They include three replicates per condition, more protein rows, annotations and filtering flags. The matching TSV files contain the same tables with tabs instead of commas.
+
+</details>
+
 Choose **A, B or C** below. Each method uses the same inputs and writes to `ubiquitin-study/`; run only one method for a fresh project. Use a new project folder to try a different design.
 
 ## A) Interactive settings
 
-```bash
-fun_proteomics setup --project "$PWD/ubiquitin-study" \
-  --mode matrix --matrix "$PWD/ubiquitin-lfq-example/proteins.csv" \
-  --samples "$PWD/ubiquitin-lfq-example/samples.csv"
-```
+The video shows the complete browser workflow with this download. Start it once with `fun_proteomics setup`, then make the choices in the page.
 
-1. Keep the terminal open. In the browser, click **Discover samples**.
+https://github.com/user-attachments/assets/bcd925bb-c021-4ccb-92fd-8ac3f4603049
+
+Choose a new **output/project folder**, such as `ubiquitin-study`. Browse to the extracted `proteins.csv` and `samples.csv`.
+
+1. Keep the terminal open and click **Discover samples**.
 2. The sample table prefills four condition columns. Review the three cards in each column. Drag cards to change assignments, or to **Unassigned** to exclude them.
 3. Keep all-versus-all comparisons and confirm independent experimental replicates for this tutorial. No donor pairing is supplied by the source design.
 4. Keep additional normalization set to **none**; these are already LFQ quantities. Missing values are not imputed.
 5. Click **Save configuration and check**, then **Run / continue analysis**.
 6. Open **Matrices · CSV & TSV** and **Results**.
 
-To practice assigning all cards yourself, omit `--samples`, discover the columns, and create `Ctrl`, `Ubi1`, `Ubi4` and `Ubi6` conditions. Assign the corresponding `_1`, `_2` and `_3` sample cards to each condition.
+To practice assigning all cards yourself, leave the sample-table field empty, discover the columns, and create `Ctrl`, `Ubi1`, `Ubi4` and `Ubi6` conditions. Assign the corresponding `_1`, `_2` and `_3` sample cards to each condition.
 
 ## B) Terminal questions
 

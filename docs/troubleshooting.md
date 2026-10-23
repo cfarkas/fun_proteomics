@@ -27,3 +27,35 @@ fun_proteomics doctor --json
 ```
 
 `check --config PROJECT/config/run.json` checks input structure and analysis design. `doctor` separately checks installed dependencies. Raw workflow validation and the actual search perform additional engine-specific checks. A successful input preview does not mean a spectrum search has already completed.
+
+## File-format checks
+
+For a sample-name mismatch, these two files must agree:
+
+**`samples.csv`**:
+
+```csv
+sample_id,condition
+C1,Control
+C2,Control
+```
+
+**`proteins.csv`**:
+
+```csv
+Protein.Group,Genes,C1,C2
+P04637,TP53,120000,135000
+```
+
+These two rows illustrate matching only; differential testing needs replicated conditions. See [all input previews](input_files.md) for service aliases, paired donors, FASTA and saved configurations.
+
+**`config/run.json`** — excerpt of the setup-generated file checked above:
+
+```json
+{
+  "project": "/data/my-study",
+  "mode": "matrix",
+  "matrix": "/data/proteins.csv",
+  "samples": "/data/samples.csv"
+}
+```

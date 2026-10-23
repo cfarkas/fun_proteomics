@@ -8,11 +8,22 @@ fun_proteomics --continue /data/my-study
 
 You can also reopen the browser with `setup --project /data/my-study` and select **Run / continue analysis**, or repeat `run --config /data/my-study/config/run.json`.
 
+**`config/run.json`** — saved configuration excerpt; continuation uses the complete recorded file:
+
+```json
+{
+  "project": "/data/my-study",
+  "mode": "matrix",
+  "matrix": "/data/proteins.csv",
+  "samples": "/data/samples.csv"
+}
+```
+
 ## What is reused
 
 For guided projects, the launcher checks saved settings and recorded input hashes before entering the existing continuation engine. Native deliveries are verified against `OUTPUT_SHA256SUMS` and their input provenance. Valid completed outputs are reused without recomputing the analysis. Missing or altered native reports are rebuilt into `continuations/<timestamp>/`, preserving previous attempts. The report and matrix shortcuts are updated after successful recovery.
 
-Native BAF checks source components, calibration inputs and converted mzML hashes before reusing spectra. Complete search checkpoints verify settings, database, tools and required reports. Damaged conversions are regenerated; incomplete searches and invalid reports are preserved under `previous_attempts/` before rebuilding. Source-data or analysis-setting changes require a new project. See [raw BAF](raw_baf.md).
+For raw BAF conversion/search reuse, follow [step 4 of the complete BAF chapter](raw_baf.md#4-open-results-and-continue).
 
 Nextflow projects reuse the recorded session and work cache. Matching tasks are cached; unfinished tasks run. The work directory and controller cache are needed for this form of reuse. A damaged or missing cache requires a fresh raw run; it is not treated as a completed spectrum search.
 

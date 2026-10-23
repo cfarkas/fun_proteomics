@@ -7,6 +7,18 @@ drag-and-drop sample setup. The direct Nextflow equivalent is
 `nextflow run main.nf --interactive --project /data/my-study`. Direct DIA runs use `nextflow run main.nf --dia_config study.json`;
 the browser generates that native DIA configuration while preserving the editable study.
 
+**`study.json`** — native DIA excerpt; use the complete examples/diapasef.json template:
+
+```json
+{
+  "acquisition": "DIA-PASEF",
+  "samplesheet": "diapasef_samples.tsv",
+  "raw_root": "/data/raw",
+  "canonical_fasta": "/data/targets.fasta",
+  "outdir": "results/dia"
+}
+```
+
 ## Validate and package
 
 From the repository directory, after installing the runtime described in README:
@@ -65,7 +77,7 @@ For example, `unzip pasef-proteomics-source.zip -d /path/to/projects` creates
 The package is small because it excludes raw data, outputs, work caches and runtimes.
 Choose an output directory outside the source repository for each real study.
 
-Version 0.4.0 adds a top-level matrix catalogue, annotated DIA protein/gene intensities,
+The workflow includes a top-level matrix catalogue, annotated DIA protein/gene intensities,
 all-pairs intensity comparisons, post-search count reanalysis and service detection
 benchmarks. The separate DIA CI job exercises actual reporting/statistical code on
 synthetic precursor tables; spectrum searches in CI remain explicitly stubbed.

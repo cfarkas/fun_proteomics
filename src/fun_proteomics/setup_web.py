@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import secrets
 import signal
+import site
 import subprocess
 import sys
 import threading
@@ -17,6 +18,21 @@ import webbrowser
 from . import study
 from .continuation import read_json, write_json
 from .setup_terminal import from_args
+
+
+def worker_environment(workflow, args):
+    """Keep installed packages after the standard library in child processes."""
+    from .cli import environment
+    env = environment(workflow, args)
+    package_root = Path(__file__).resolve().parents[1]
+    installed_roots = {Path(value).resolve() for value in
+                       [*site.getsitepackages(), site.getusersitepackages()] if value}
+    # Source checkouts need their src directory. Installed packages are already
+    # discoverable by the same interpreter; adding all site-packages to
+    # PYTHONPATH can shadow stdlib modules with unrelated backports.
+    if package_root not in installed_roots:
+        env['PYTHONPATH'] = os.pathsep.join(filter(None, [str(package_root), env.get('PYTHONPATH')]))
+    return env
 
 
 class Application:
@@ -55,15 +71,14 @@ class Application:
         return info
 
     def start(self):
-        from .cli import environment, process_identity
+        from .cli import process_identity
         with self.guard:
             if self.status()['state']=='running': raise ValueError('This project is already running')
             path=Path(self.project)/'config/run.json'
             study.check(study.load(path),self.workflow)
             folder=Path(self.project)/'logs';folder.mkdir(parents=True,exist_ok=True)
             command=[sys.executable,'-m','fun_proteomics',*study.runtime_flags(self.args),'run','--config',str(path)]
-            env=environment(self.workflow,self.args)
-            env['PYTHONPATH']=str(Path(__file__).resolve().parents[1])+os.pathsep+env.get('PYTHONPATH','')
+            env=worker_environment(self.workflow,self.args)
             with (folder/'analysis.log').open('a') as log:
                 self.process=subprocess.Popen(command,cwd=self.project,env=env,
                              stdout=log,stderr=subprocess.STDOUT,start_new_session=True)

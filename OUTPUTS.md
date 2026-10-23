@@ -1,5 +1,34 @@
 # Results directory
 
+For the shortest route to your files, open the [output guide](docs/outputs.md). These examples illustrate the primary table shapes; complete exports also include annotations and provenance.
+
+**`protein_counts.csv`**:
+
+```csv
+FeatureID,C1,C2,T1,T2
+P04637,12,15,28,30
+P60709,45,50,47,49
+```
+
+**`protein_intensities.csv`**:
+
+```csv
+Protein.Group,Genes,C1,C2,T1,T2
+P04637,TP53,120000,135000,260000,245000
+P60709,ACTB,480000,505000,490000,510000
+P02768,ALB,90000,85000,,100000
+```
+
+**`all_results.csv`** — selected columns:
+
+```csv
+FeatureID,Genes,logFC,PValue,FDR,test_status,significant
+P04637,TP53,1.0,0.01,0.04,tested,True
+P60709,ACTB,0.02,0.8,0.9,tested,False
+```
+
+The [output table previews](docs/outputs.md#table-previews) also show gene quantities, the matrix catalogue and comparison index.
+
 ## Matrix entry point and DIA outputs
 
 Every delivered matrix is available in both **CSV and TSV**, with identical identifiers, values and missing cells. `MATRICES.html` has separate links for both formats; the index is also supplied as `MATRICES.csv` and `MATRICES.tsv`.

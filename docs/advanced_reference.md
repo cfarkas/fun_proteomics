@@ -1,5 +1,7 @@
 # Advanced workflow reference
 
+For routine analysis, start with [setup](setup.md), [input previews](input_files.md), or the [single BAF chapter](raw_baf.md). This page covers specialist native configurations.
+
 A Nextflow pipeline with browser-based setup for native Bruker DDA-PASEF and DIA-PASEF acquisitions. The DDA branch uses FragPipe for DDA/DDA+ searches, protein and peptide count tables, modification counts, and optional differential analyses. The DIA branch uses DIA-NN for identification and quantification.
 
 Raw PASEF analyses start with `nextflow run main.nf`. Existing count or quantification tables can also be analyzed directly using the scripts below. Use `--interactively` to configure either acquisition type. Direct DDA runs use `--config`; direct DIA runs use `--dia_config`.
@@ -19,6 +21,37 @@ python -m fun_proteomics --continue /data/my_study
 fun_proteomics run --config /data/dda.json --outdir /data/results
 fun_proteomics run --dia-config /data/dia.json --outdir /data/results_dia
 nextflow run main.nf --continue /data/my_study
+```
+
+**`dda.json`** — selected fields; start from the complete examples/run.json template:
+
+```json
+{
+  "outdir": "results/my_study",
+  "modes": [
+    "DDA"
+  ],
+  "resources": {
+    "cpus": 8,
+    "memory_gib": 32
+  },
+  "database": {
+    "fasta": "/data/reference/search.fasta",
+    "contains_decoys": true
+  }
+}
+```
+
+**`dia.json`** — selected fields; start from the complete examples/diapasef.json template:
+
+```json
+{
+  "acquisition": "DIA-PASEF",
+  "samplesheet": "diapasef_samples.tsv",
+  "raw_root": "/data/raw",
+  "canonical_fasta": "/data/targets.fasta",
+  "outdir": "results/dia"
+}
 ```
 
 The Python package includes workflow code and reporting assets. It excludes study data, results, credentials and registered binaries. Raw PASEF workflows use Nextflow; conventional [raw BAF](raw_baf.md), existing quantification and verified-search reporting run in native Python. The project is distributed under the [MIT license](../LICENSE).
@@ -73,8 +106,35 @@ python -m fun_proteomics quantify --matrix examples/quantification_matrix.csv \
   --outdir results/example_quantification --differential
 ```
 
-These invented measurements demonstrate file formats and testing, not biological findings.
+**`examples/quantification_matrix.csv`** — first rows from the bundled synthetic example:
 
+```csv
+Protein.Group,Genes,C1,C2,A1,A2,B1,B2
+P00001,GENE_A,100,110,400,410,100,90
+P00002,GENE_B,200,210,190,205,800,810
+```
+
+**`examples/quantification_samples.csv`** — first rows from the bundled synthetic example:
+
+```csv
+sample_id,condition,replicate
+C1,Control,1
+C2,Control,2
+A1,Treatment A,1
+A2,Treatment A,2
+B1,Treatment B,1
+B2,Treatment B,2
+```
+
+**`examples/service_quantification.csv`** — first rows from the bundled synthetic example:
+
+```csv
+Protein.Group,Genes,C1,C2,A1,A2,B1,B2
+P00001,GENE_A,100,100,400,400,100,100
+P00002,GENE_B,200,200,200,200,800,800
+```
+
+These invented measurements demonstrate file formats and testing, not biological findings.
 
 Import CSV/TSV matrices from DIA-NN, FragPipe or a provider, including metadata in arbitrary positions.
 Excel `.xlsx` input is supported when `openpyxl` is installed (included in the main runtime).
@@ -85,6 +145,33 @@ Use one cohort/sample type per import and independently numbered biological repl
 python -m fun_proteomics quantify --matrix /data/protein_matrix.tsv \
   --samples /data/samples.csv --service-matrix /data/provider.tsv \
   --outdir /data/quantification_review --differential
+```
+
+**`protein_matrix.tsv / provider.tsv`** — plain abundance table example; matching sample columns:
+
+```tsv
+Protein.Group	Genes	C1	C2	T1	T2
+P04637	TP53	120000	135000	260000	245000
+P60709	ACTB	480000	505000	490000	510000
+```
+
+**`samples.csv`**:
+
+```csv
+sample_id,condition,replicate
+C1,Control,1
+C2,Control,2
+T1,Treatment,1
+T2,Treatment,2
+```
+
+**`targets.fasta`** — format illustration; supply a complete matching database:
+
+```fasta
+>sp|DEMO001|EXAMPLE_A GN=GENE_A
+MPEPTIDEK
+>sp|DEMO002|EXAMPLE_B GN=GENE_B
+MPEPTIDER
 ```
 
 With no `--control`, every condition pair is tested. Omit `--service-matrix` to analyze a provider table by itself.
@@ -100,6 +187,14 @@ python -m fun_proteomics quantify --matrix /data/pipeline_proteins.tsv \
   --outdir /data/detection_benchmark
 ```
 
+**`pipeline_proteins.tsv / provider_combined_protein.tsv`** — spectral-count input example:
+
+```tsv
+Protein	C1 Spectral Count	C2 Spectral Count	T1 Spectral Count	T2 Spectral Count
+P04637	12	15	28	30
+P60709	45	50	47	49
+```
+
 FragPipe import selects MaxLFQ, intensity or spectral-count columns by their names; `--quantity` overrides selection.
 For a generic matrix with bare sample columns, use `--quantity value` and explicitly set `--measure spectral_count`
 if it contains counts. Count models use `reanalyze_counts.py` or the DDA workflow.
@@ -109,6 +204,16 @@ Unknown samples, duplicate groups/columns and invalid measurements fail before b
 A sample table may include `service_sample` for explicit provider names. Use `--service-samples mapping.csv`
 when that mapping should apply only to the benchmark table. Run paths and `.d` suffixes are normalized;
 treatment labels are never inferred by fuzzy matching. Record acquisition evidence when correcting a provider label.
+**`mapping.csv`** — service aliases for the C1/C2/T1/T2 example:
+
+```csv
+sample_id,service_sample
+C1,Lab_C1
+C2,Lab_C2
+T1,Lab_T1
+T2,Lab_T2
+```
+
 The benchmark exports per-sample and union detection counts, shared groups, pipeline-only groups,
 service-only groups, signed differences, percentages and complete membership lists.
 The percentage is undefined for a zero service baseline. These are detection comparisons, not evidence of matched FDR or higher accuracy.
@@ -147,7 +252,6 @@ The executable adapters support native Bruker DDA-PASEF and DIA-PASEF `.d` direc
 
 **Save draft** keeps incomplete setup, sample names, assignments and current form fields in a new local version without starting an analysis. DIA preserves saved DDA modes, tools, differential and optional-analysis settings, but those settings are inactive during DIA runs.
 
-
 ## DIA-PASEF through main.nf
 
 The DIA-NN adapter uses native Nextflow tasks in the same `main.nf` entry point.
@@ -185,6 +289,28 @@ The sample table requires `sample_id`, `sample_type`, `raw_path` and
 `library_reference`. IDs must be unique within type; the same subject ID may
 occur in multiple types. At least one library reference is required per type.
 Condition/replicate and other additional columns are retained during preparation.
+
+**`diapasef_samples.tsv`** — first sample type from the native DIA example:
+
+```tsv
+sample_id	sample_type	condition	replicate	raw_path	library_reference
+001	serum	Control	1	serum/sample_001.d	true
+002	serum	Control	2	serum/sample_002.d	false
+003	serum	Treatment	1	serum/sample_003.d	true
+004	serum	Treatment	2	serum/sample_004.d	false
+```
+
+**`study.json`** — native DIA excerpt; copy the complete template before editing:
+
+```json
+{
+  "acquisition": "DIA-PASEF",
+  "samplesheet": "diapasef_samples.tsv",
+  "raw_root": "/data/raw",
+  "canonical_fasta": "/data/targets.fasta",
+  "outdir": "results/dia"
+}
+```
 
 `--threads` (or `--cpus`), `--memory`, and `--outdir` override JSON resources and
 output. Defaults are 32 threads and 96 GiB per engine task; the existing local
@@ -287,35 +413,51 @@ Open `final_results/START_HERE.html` for an offline dashboard with separate **Ma
 
 Open-search discovery has been removed. Older configurations automatically drop its setting and mass-shift comparisons while preserving selected peptide and isoform statistics. To apply the new layout to completed results without recomputing statistics, run `.runtime/env/bin/python pipeline_lib/result_layout.py <outdir>/final_results --preserve-original`. Original result tables are archived under `analysis_details/previous_result_layout_*`; the delivered files are copied with verified SHA-256 checksums. This same layout is generated automatically for future runs.
 
-CLI configuration uses an optional block such as:
+Native DDA configuration excerpt; merge this optional block into your complete configuration:
 
 ```json
-"optional_analyses": {
-  "hla_enriched": false,
-  "peptide_isoforms": true,
-  "statistics": {
-    "enabled": true,
-    "features": ["peptide", "isoform"],
-    "methods": ["edgeR", "limma"],
-    "comparisons": "control",
-    "control": "Control",
-    "fdr": 0.05,
-    "filter_low_counts": false
-  },
-  "drugs": {
-    "applied": true,
-    "study_type": "synergy",
-    "interaction": {
+{
+  "optional_analyses": {
+    "hla_enriched": false,
+    "peptide_isoforms": true,
+    "statistics": {
       "enabled": true,
-      "cohort": "study",
+      "features": [
+        "peptide",
+        "isoform"
+      ],
+      "methods": [
+        "edgeR",
+        "limma"
+      ],
+      "comparisons": "control",
       "control": "Control",
-      "drug_a": "Drug A",
-      "drug_b": "Drug B",
-      "combination": "Combination",
-      "matched_design": true,
       "fdr": 0.05,
-      "methods": ["edgeR", "limma", "monte_carlo"],
-      "monte_carlo": {"simulations": 9999, "seed": 1, "workers": 2}
+      "filter_low_counts": false
+    },
+    "drugs": {
+      "applied": true,
+      "study_type": "synergy",
+      "interaction": {
+        "enabled": true,
+        "cohort": "study",
+        "control": "Control",
+        "drug_a": "Drug A",
+        "drug_b": "Drug B",
+        "combination": "Combination",
+        "matched_design": true,
+        "fdr": 0.05,
+        "methods": [
+          "edgeR",
+          "limma",
+          "monte_carlo"
+        ],
+        "monte_carlo": {
+          "simulations": 9999,
+          "seed": 1,
+          "workers": 2
+        }
+      }
     }
   }
 }
@@ -336,6 +478,38 @@ nextflow run main.nf --config config.local.json --verbosity 3
 The example contains synthetic names and placeholder paths/checksum. Replace them before running. The organism filter defaults to `null` (all target organisms); choose a scientific species name to restrict reporting. Use a FASTA appropriate to the experiment regardless of this reporting filter. Local FASTA input requires a SHA256; the browser download option builds the database and fills this automatically. For a target-only FASTA, provide the contaminant archive and checksum as described by the schema.
 
 For terminal runs, use `nextflow run main.nf --config config.local.json -ansi-log false`. The workflow prepares its runtime automatically. Advanced logging overrides are documented in `nextflow run main.nf --help`.
+
+**`config.local.json`** — native DDA excerpt; replace paths, samples and database checksum in the complete template:
+
+```json
+{
+  "outdir": "results/my_study",
+  "modes": [
+    "DDA"
+  ],
+  "resources": {
+    "cpus": 8,
+    "memory_gib": 32
+  },
+  "database": {
+    "fasta": "/data/reference/search.fasta",
+    "contains_decoys": true
+  }
+}
+```
+
+**`search.fasta`** — format illustration only; use the complete validated target/contaminant/decoy database:
+
+```fasta
+>sp|DEMO001|EXAMPLE_A GN=GENE_A
+MPEPTIDEK
+>rev_sp|DEMO001|EXAMPLE_A GN=GENE_A
+KEDITPEPM
+>contam_DEMO
+MPEPTIDER
+>rev_contam_DEMO
+REDITPEPM
+```
 
 JSON paths are relative to the JSON file. CLI `--outdir` is relative to the launch directory. Every supported field is described in [config.schema.json](../assets/config.schema.json); `nextflow run main.nf --help` lists pipeline flags. GPU execution is not exposed.
 

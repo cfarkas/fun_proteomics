@@ -8,13 +8,29 @@ fun_proteomics setup --outdir /data/ev-analysis \
   --mode matrix --matrix /data/service-report.xlsx
 ```
 
+**`service-report.xlsx`** — CSV-style preview of the Identified proteins worksheet; illustrative quantities:
+
+```csv
+Protein IDs,Gene names,LFQ intensity D1_CTL,LFQ intensity D1_Treatment,LFQ intensity D2_CTL,LFQ intensity D2_Treatment
+P04637,TP53,120000,260000,135000,245000
+P60709,ACTB,480000,490000,505000,510000
+```
+
 The browser finds the protein quantity worksheet, reads MaxQuant `LFQ intensity SAMPLE` columns, and shows the samples on the condition board. Drag them into your conditions. Cover pages and statistical-result sheets are skipped. Use **Excel worksheet** or `--sheet 'Identified proteins'` to select a specific sheet. CSV/TSV `proteinGroups.txt` reports with `Protein IDs` and `Gene names` also work.
+
+**`proteinGroups.txt`** — equivalent tab-separated MaxQuant export:
+
+```tsv
+Protein IDs	Gene names	LFQ intensity D1_CTL	LFQ intensity D1_Treatment	LFQ intensity D2_CTL	LFQ intensity D2_Treatment
+P04637	TP53	120000	260000	135000	245000
+P60709	ACTB	480000	490000	505000	510000
+```
 
 `--outdir` and `--project` mean the same thing in **setup**: the complete study folder. Configuration, logs and results are contained there. Open `ev-analysis/START_HERE.html` or `ev-analysis/MATRICES.html`; protein and gene CSV/TSV files are in `ev-analysis/results/final_results/matrices/`.
 
 ## Repeated donors and technical injections
 
-Use one biological quantity per donor and condition. If a provider has already combined triplicate LC-MS injections into one LFQ column, use that column once. Three injections from one donor are not three independent donors. Prepare an optional sample table:
+Use one biological quantity per donor and condition. If a provider has already combined triplicate LC-MS injections into one LFQ column, use that column once. Three injections from one donor are not three independent donors. Prepare an optional **`samples.csv`**:
 
 ```csv
 sample_id,condition,donor
@@ -42,12 +58,19 @@ For independent studies, use `--independent-samples` instead of `--subject-colum
 
 `quality_control/import_audit.json` records the worksheet and header row, provider flags and any removed empty duplicate rows. MaxQuant reverse, contaminant and site-only rows are excluded. Multiple nonempty rows for the same canonical group are rejected; they are never silently summed. An entirely zero/missing duplicate row in a FASTA-header service report can be removed without changing measured quantities, and its source row is recorded.
 
+**`quality_control/import_audit.json`** — illustrative selected fields; generated during import:
+
+```json
+{
+  "import": {"format": "excel", "worksheet": "Identified proteins", "header_row": 1},
+  "excluded_decoy_contaminant_rows": 0
+}
+```
+
 Accession and `GN=` fields are read from UniProt FASTA headers when explicit identifier/gene columns are absent. The original headers remain in the protein matrix. Clipped or incomplete protein-group headers are marked `partial_header`; reported genes remain visible, but those groups are excluded from gene sums and exact-group detection benchmarks. A FASTA can supplement annotation, but cannot reconstruct group members missing from a clipped report. Request the complete `proteinGroups.txt` export when complete gene/group coverage is required.
 
 LFQ values must be linear, finite and nonnegative. Log-transformed or imputed result tables need their original pre-transformation quantities; the importer does not undo an unknown transformation. Zero indicates no positive quantity for detection and becomes missing in the log2 statistical model.
 
-## Impact / QTOF BAF acquisitions
+## Working from raw BAF instead
 
-A `.d` extension does not identify the acquisition type. `analysis.baf` files from Bruker Impact/QTOF instruments differ from timsTOF `analysis.tdf` PASEF data. Choose Raw BAF in setup to re-search the acquisitions, or choose Quantification matrix to analyze the delivered workbook. **Raw BAF re-search is available as a separate native workflow; see [Raw BAF](raw_baf.md).** MGF exports can support identification searches, but lack the MS1 data needed for LFQ quantification; see the [FragPipe input guide](https://fragpipe.nesvilab.org/docs/tutorial_fragpipe).
-
-This route analyzes delivered quantities and does not claim new identifications or better detection than the provider. Detection gains/losses require a separate, compatible quantification matrix with explicit sample matching.
+This guide imports the delivered workbook. For acquisitions containing `analysis.baf`, follow the [complete BAF workflow](raw_baf.md), including its embedded setup video and input examples.
