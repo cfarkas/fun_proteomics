@@ -1,5 +1,14 @@
 # Continue and recover
 
+For native DIA runs, `install_cache` is a download location, not an analysis
+input. Starting with 0.9.2, adding unrelated environments or packages to that
+directory does not invalidate completed searches. The requirements lock,
+installer source, method, acquisitions and reference files remain task inputs;
+the installer still checks the registered DIA-NN archive and pinned packages.
+Use a cache path accessible to the task executor. Changing workflow versions
+can change task hashes, so keep the original checkout when resuming an older
+incomplete run. Completed delivery files and their provenance remain valid.
+
 From any working directory:
 
 ```bash

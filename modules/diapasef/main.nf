@@ -9,12 +9,15 @@ process DIA_ENVIRONMENT {
     val settings
     path sources
     path requirements, stageAs: 'requirements-lock.txt'
-    path install_cache, stageAs: 'install_cache'
+    // A shared download cache is not an analysis input. Its directory timestamp
+    // changes when unrelated tools are installed; hashing it reruns every search.
+    // The installer still verifies the pinned archive and package versions.
+    val install_cache
     output:
     path 'environment', emit: runtime
     script:
     """
-    ${sq(settings.python)} 00_env.py --root environment --requirements requirements-lock.txt --cache-dir install_cache
+    ${sq(settings.python)} 00_env.py --root environment --requirements requirements-lock.txt --cache-dir ${sq(install_cache)}
     """
     stub:
     """
@@ -221,7 +224,7 @@ workflow DIA_PASEF {
     def services = settings.service_matrices.collectEntries { key, value -> [key, file(value, checkIfExists: true)] }
     def runtime = DIA_ENVIRONMENT(settings, sources,
         Channel.value(file(settings.requirements_lock, checkIfExists: true)),
-        Channel.value(file(settings.install_cache, checkIfExists: true)))
+        Channel.value(settings.install_cache.toString()))
     def prepared = DIA_PREPARE_SAMPLES(settings, runtime.runtime, sources,
         Channel.value(file(settings.samplesheet, checkIfExists: true)), raws,
         Channel.value(file(settings.canonical_fasta, checkIfExists: true)),
