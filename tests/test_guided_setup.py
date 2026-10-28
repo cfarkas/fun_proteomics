@@ -66,6 +66,19 @@ class GuidedSetupTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'empty'):study.save(self.cfg,ROOT)
         self.assertEqual((p/'important.txt').read_text(),'keep')
 
+    def test_fdrtool_choice_is_saved_forwarded_and_locked_after_launch(self):
+        cfg=dict(self.cfg,fdr_method='fdrtool_normal')
+        path,report=study.save(cfg,ROOT)
+        self.assertEqual(study.load(path)['fdr_method'],'fdrtool_normal')
+        self.assertTrue(any('recalibrates' in w for w in report['warnings']))
+        args=cli.parser().parse_args(['--print-command','run','--config',str(path)])
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output):study.run_study(path,args,ROOT)
+        self.assertIn('--fdr-method fdrtool_normal',output.getvalue())
+        (path.parent.parent/'.fun_proteomics/launch.json').write_text('{}')
+        with self.assertRaisesRegex(ValueError,'new project'):
+            study.save(dict(cfg,fdr_method='BH'),ROOT)
+
     def test_saved_configuration_cannot_be_silently_moved(self):
         path,_=study.save(self.cfg,ROOT)
         moved=self.root/'moved';shutil.copytree(path.parent.parent,moved)

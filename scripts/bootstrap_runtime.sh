@@ -32,10 +32,10 @@ if [[ "$need_r" == true ]]; then
     export PATH="$(dirname -- "$selected_r"):$PATH"
     export R_LIBS="$repo/.runtime/R-library${R_LIBS:+:$R_LIBS}"
     echo '[SETUP] Checking R reporting packages…'
-    if ! "$selected_r" -e 'p<-c("edgeR","edgeRun","limma","jsonlite","statmod","data.table");quit(status=if(all(vapply(p,requireNamespace,logical(1),quietly=TRUE)) && packageVersion("edgeR") >= "4.4.2" && packageVersion("limma") >= "3.62.2")0 else 1)'; then
+    if ! "$selected_r" -e 'p<-c("edgeR","edgeRun","limma","jsonlite","statmod","data.table","fdrtool");quit(status=if(all(vapply(p,requireNamespace,logical(1),quietly=TRUE)) && packageVersion("edgeR") >= "4.4.2" && packageVersion("limma") >= "3.62.2")0 else 1)'; then
         bash "$repo/scripts/install_differential_tools.sh" "$selected_r"
     fi
-    "$selected_r" -e 'p<-c("edgeR","edgeRun","limma","jsonlite","statmod","data.table");stopifnot(all(vapply(p,requireNamespace,logical(1),quietly=TRUE)));if(packageVersion("edgeR") < "4.4.2" || packageVersion("limma") < "3.62.2")stop("edgeR >= 4.4.2 and limma >= 3.62.2 are required")'
+    "$selected_r" -e 'p<-c("edgeR","edgeRun","limma","jsonlite","statmod","data.table","fdrtool");stopifnot(all(vapply(p,requireNamespace,logical(1),quietly=TRUE)));if(packageVersion("edgeR") < "4.4.2" || packageVersion("limma") < "3.62.2")stop("edgeR >= 4.4.2 and limma >= 3.62.2 are required")'
 fi
 python - "$settings" "$selected_r" <<'PY'
 import json,sys

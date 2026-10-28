@@ -263,7 +263,7 @@ def continue_run(args, project):
             name, path = service.split('=',1)
             command += ['--service-matrix',name+'='+str(Path(path).expanduser().resolve())]
         options = settings.get('differential', {})
-        for name in ('fdr', 'min_replicates'):
+        for name in ('fdr', 'fdr_method', 'min_replicates'):
             if name in options:
                 command += ['--'+name.replace('_','-'),str(options[name])]
         record = dict(engine='native-dia', source_run=settings['source_run'], outdir=str(output), continued_from=str(folder), project=str(project),

@@ -8,9 +8,9 @@ import re
 
 def differential_options(options=None):
     if options is None: options={}
-    allowed={'enabled','comparisons','control','fdr','min_replicates','normalization','gene_level','rscript','subject_column'}
+    allowed={'enabled','comparisons','control','fdr','fdr_method','min_replicates','normalization','gene_level','rscript','subject_column'}
     if not isinstance(options,dict) or set(options)-allowed: raise ValueError('Unknown intensity differential options')
-    result=dict(enabled=False,comparisons='all_pairwise',fdr=.05,min_replicates=2,normalization='none',gene_level=True,rscript=os.environ.get('PROTEOMICS_RSCRIPT','Rscript'))
+    result=dict(enabled=False,comparisons='all_pairwise',fdr=.05,fdr_method='BH',min_replicates=2,normalization='none',gene_level=True,rscript=os.environ.get('PROTEOMICS_RSCRIPT','Rscript'))
     result.update(options)
     for key in ('enabled','gene_level'):
         if not isinstance(result[key],bool): raise ValueError(key+' must be boolean')
@@ -18,6 +18,8 @@ def differential_options(options=None):
     if result['comparisons']=='control' and not result.get('control'): raise ValueError('A reference condition is required')
     if isinstance(result['fdr'],bool) or not 0<float(result['fdr'])<1: raise ValueError('FDR must be between zero and one')
     result['fdr']=float(result['fdr']);value=result['min_replicates']
+    if result['fdr_method'] not in ('BH','fdrtool_pvalue','fdrtool_normal'):
+        raise ValueError('fdr_method must be BH, fdrtool_pvalue or fdrtool_normal')
     if isinstance(value,bool) or not str(value).isdigit() or int(value)<2: raise ValueError('min_replicates must be an integer >= 2')
     result['min_replicates']=int(value)
     if result['normalization'] not in ('none','median'): raise ValueError('normalization must be none or median')

@@ -28,6 +28,8 @@ def main():
     parser.add_argument('--differential',action='store_true')
     parser.add_argument('--control',help='Omit to compare every unordered condition pair')
     parser.add_argument('--fdr',type=float,default=.05)
+    parser.add_argument('--fdr-method',choices=['BH','fdrtool_pvalue','fdrtool_normal'],default='BH',
+                        help='BH (default), fdrtool on unchanged limma P values, or empirical-normal recalibration of moderated t statistics')
     parser.add_argument('--min-replicates',type=int,default=2)
     parser.add_argument('--normalization',choices=['none','median'],default='none')
     parser.add_argument('--rscript',default=None)
@@ -45,7 +47,7 @@ def main():
         service_samples=read_table(args.service_samples) if args.service_samples else samples
         service,_,service_map=load_matrix(args.service_matrix,service_samples,args.service_quantity,sheet=args.service_sheet)
     options=dict(enabled=args.differential,comparisons='control' if args.control else 'all_pairwise',control=args.control,
-                 fdr=args.fdr,min_replicates=args.min_replicates,normalization=args.normalization)
+                 fdr=args.fdr,fdr_method=args.fdr_method,min_replicates=args.min_replicates,normalization=args.normalization)
     if args.subject_column: options['subject_column']=args.subject_column
     if args.rscript: options['rscript']=args.rscript
     analyze_matrix(matrix,annotations,samples,output,options,service,service_map,measure)

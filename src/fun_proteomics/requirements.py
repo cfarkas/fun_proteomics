@@ -22,7 +22,7 @@ def system_info(path):
     return dict(cpus=cpus,memory_gib=round(memory/2**30,1),disk_free_gib=round(shutil.disk_usage(target).free/2**30,1),path=str(target))
 
 
-def readiness(project,args,mode='matrix',statistics=True):
+def readiness(project,args,mode='matrix',statistics=True,fdr_method='BH'):
     from .cli import environment, nextflow_binary
     env=environment(project,args)
     checks={name:importlib.util.find_spec(name) is not None for name in ('numpy','pandas','matplotlib','pyarrow','openpyxl','jsonschema')}
@@ -33,6 +33,7 @@ def readiness(project,args,mode='matrix',statistics=True):
         if not r or not shutil.which(r): missing.append('Rscript')
         else:
             packages=['limma','jsonlite'] if mode!='dda' else ['edgeR','limma','jsonlite','statmod','data.table']
+            if fdr_method!='BH': packages.append('fdrtool')
             expression='p<-c('+','.join('"'+p+'"' for p in packages)+');bad<-p[!vapply(p,requireNamespace,logical(1),quietly=TRUE)];'
             if mode=='dda':
                 expression+='for(n in c("edgeR","limma")){if(!n %in% bad && packageVersion(n)<if(n=="edgeR")"4.4.2" else "3.62.2")bad<-c(bad,paste0(n," (outdated)"))};'

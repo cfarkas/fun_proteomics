@@ -28,6 +28,7 @@ def write_dashboard(output, title='Proteomics results'):
         parts = path.parent.relative_to(output/'differential_expression').parts
         for row in frame.to_dict('records'):
             row.update(cohort=parts[0] if len(parts)>1 else '', feature=parts[-1])
+            row.setdefault('FDR_method','BH')
             for field in ('full_results', 'significant_results'):
                 row[field] = (path.parent/row[field]).relative_to(output).as_posix()
             comparisons.append(row)
@@ -40,12 +41,15 @@ def write_dashboard(output, title='Proteomics results'):
         body = ''
         for row in comparisons:
             body += '<tr>' + ''.join('<td>'+html.escape(str(row[key]))+'</td>' for key in
-                ('cohort', 'feature', 'baseline', 'comparison_condition', 'tested_features', 'significant_features'))
+                ('cohort', 'feature', 'baseline', 'comparison_condition', 'FDR_method', 'tested_features', 'significant_features'))
             body += ''.join('<td><a href="'+quote(row[key])+'">'+label+'</a></td>' for key,label in
                 [('full_results','All results'),('significant_results','Significant')]) + '</tr>'
-        sections.append('<h2>Differential abundance</h2><p>Positive logFC means comparison minus reference. Each row has its own BH FDR family. '
+        sections.append('<h2>Differential abundance</h2><p>Positive logFC means comparison minus reference. Each row has its own testing family and names its FDR method. '
+            'PValue is always the original limma P value; BH_FDR preserves its BH correction. FDR is the selected method, '
+            'and FDR_PValue is the P value on that method\'s null scale. Empirical-normal fdrtool changes the null calibration; '
+            'its FDR is not an adjustment of the original PValue. Null parameters, diagnostics and warnings accompany fdrtool results. '
             'Index: <a href="results_index.csv">CSV</a> · <a href="results_index.tsv">TSV</a>.</p><table><tr><th>Cohort</th><th>Feature</th>'
-            '<th>Reference</th><th>Comparison</th><th>Tested</th><th>Significant</th><th>Full table</th><th>Subset</th></tr>'+body+'</table>')
+            '<th>Reference</th><th>Comparison</th><th>FDR method</th><th>Tested</th><th>Significant</th><th>Full table</th><th>Subset</th></tr>'+body+'</table>')
     for path in sorted((output/'benchmark').rglob('detection_summary.csv')):
         frame = pd.read_csv(path)
         union = frame.loc[frame.sample_id.eq('__union__')]
@@ -68,7 +72,7 @@ def write_dashboard(output, title='Proteomics results'):
     for folder, label in [('quality_control','Quality control and provenance'),('differential_expression','Model settings and supporting tables'),('optional_analyses','Optional analyses')]:
         links = []
         for path in sorted((output/folder).rglob('*')):
-            if path.is_file() and path.suffix in ('.csv','.tsv','.pdf','.png','.md','.json'):
+            if path.is_file() and path.suffix in ('.csv','.tsv','.pdf','.png','.md','.json','.txt'):
                 if folder == 'differential_expression' and path.name in ('all_results.csv','significant_results.csv'):
                     continue
                 rel = path.relative_to(output).as_posix()
@@ -113,4 +117,20 @@ def analyze_matrix(matrix, annotations, samples, output, options=None, service=N
             subprocess.run([rscript,str(Path(__file__).with_name('intensity_differential.R')),str(config)],check=True)
     (output/'README.md').write_text('# Quantification results\n\nOpen START_HERE.html. matrices/ contains annotated protein quantities and unambiguous gene rollups. quality_control/ records sample assignments, detection and excluded gene mappings. benchmark/ records matched service detection when supplied.\n\nGene intensity is the sum of positive protein-group quantities assigned to one gene; ambiguous or partial mappings are excluded. It is a protein-group rollup, not DIA-NN Gene.MaxLFQ, RNA expression, or independent gene-level identification FDR. Missing values remain blank. A gene sum can change with the number of observed groups.\n\nDifferential abundance uses limma-trend on log2 positive intensities, with no imputation and no normalization by default (DIA-NN PG.MaxLFQ is already normalized). Optional median centering is recorded. Each pair is fitted separately with at least the configured number of observed biological replicates per condition; each feature level and contrast has its own BH FDR. Full tables retain untestable features with blank p-values and an explicit status. The default model assumes independent replicates. When subject_column is configured, each contrast uses within-donor log2 differences and requires the configured number of complete donor pairs per feature. Technical injections must already be aggregated to one quantity per donor/condition. Paired limma-trend moderates the difference variances using mean abundance across complete pairs; no missing values are imputed. paired_samples.csv and paired_log2_differences.csv record the exact matching. No other batch adjustment is inferred.\n')
     (qc/'analysis_options.json').write_text(json.dumps(dict(options,measure=measure),indent=2)+'\n')
+    readme=output/'README.md'
+    text=readme.read_text().replace('each feature level and contrast has its own BH FDR.',
+        'each feature level and contrast has its own testing family. BH is the default FDR method.')
+    text+='\n## FDR method and P-value provenance\n\nSelected method: **'+options['fdr_method']+'**. '
+    text+='`PValue` always retains the original limma P value; `BH_FDR` retains its per-contrast BH adjustment. '
+    text+='`FDR` is the selected BH value or fdrtool tail-area q value. `significant` uses that selected column and the configured threshold. '
+    text+='`FDR_PValue` is on the same null scale as the selected method. '
+    text+='`fdrtool_pvalue` uses the unchanged limma P values and estimates the null proportion/distribution. '
+    text+='`fdrtool_normal` instead fits a zero-centred normal null to moderated t statistics and recalibrates P values; '
+    text+='its q values are not adjusted versions of the original limma P values. This optional empirical-null analysis is a sensitivity analysis, '
+    text+='particularly because moderated t statistics can have different degrees of freedom. '
+    text+='`moderated_t`, `df_total` and `local_fdr` are exported; local fdr differs from tail-area q. '
+    text+='For fdrtool, each contrast also contains `fdrtool_parameters.csv`, `fdrtool_diagnostics.csv/.pdf` and `fdrtool_warnings.txt`. '
+    text+='The null-fitting cutoff is `fndr`; failures stop the analysis instead of silently substituting BH. '
+    text+='Do not choose a method because it yields more significant features.\n'
+    readme.write_text(text)
     write_dashboard(output)

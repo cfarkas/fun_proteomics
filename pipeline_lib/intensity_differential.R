@@ -2,6 +2,11 @@
 # Missing intensities stay missing. Each named contrast has its own BH family.
 suppressPackageStartupMessages({library(limma); library(jsonlite)})
 job <- fromJSON(commandArgs(TRUE)[1])
+fdr_method <- if(is.null(job$fdr_method)) 'BH' else job$fdr_method
+if(length(fdr_method)!=1 || !fdr_method %in% c('BH','fdrtool_pvalue','fdrtool_normal'))
+ stop('fdr_method must be BH, fdrtool_pvalue or fdrtool_normal')
+if(fdr_method!='BH' && !requireNamespace('fdrtool',quietly=TRUE))
+ stop('The selected FDR method requires the R package fdrtool. Run fun_proteomics install --r-only with the selected R library.')
 samples <- read.csv(job$samples, check.names=FALSE, colClasses='character')
 data <- read.csv(job$matrix, check.names=FALSE, colClasses='character')
 if (!all(c('sample_id','condition','replicate') %in% names(samples))) stop('Samples require sample_id, condition, replicate')
@@ -53,6 +58,8 @@ for(pair in pairs) {
  tab <- annotation; tab$baseline <- rep(pair[1],nrow(y)); tab$comparison <- rep(pair[2],nrow(y))
  tab$logFC <- rowMeans(y[,b,drop=FALSE],na.rm=TRUE)-rowMeans(y[,a,drop=FALSE],na.rm=TRUE)
  tab$logFC[!is.finite(tab$logFC)] <- NA_real_; tab$PValue <- tab$FDR <- rep(NA_real_,nrow(y))
+ tab$BH_FDR <- tab$FDR_PValue <- tab$moderated_t <- tab$df_total <- tab$local_fdr <- rep(NA_real_,nrow(y))
+ tab$FDR_method <- rep(fdr_method,nrow(y))
  name <- paste0(labels[[pair[1]]],'_vs_',labels[[pair[2]]]); folder <- file.path(out,name); dir.create(folder,showWarnings=FALSE)
  if (blocked) {
   subjects <- intersect(samples[[subject_column]][a], samples[[subject_column]][b])
@@ -81,11 +88,43 @@ for(pair in pairs) {
   fit <- eBayes(fit,trend=TRUE)
   p <- as.numeric(fit$p.value[,1]); valid <- is.finite(p) & fit$df.residual>0; positions <- which(eligible)[valid]
   tab$logFC[positions] <- fit$coefficients[valid,1]; tab$PValue[positions] <- p[valid]
-  tab$FDR[positions] <- p.adjust(p[valid],'BH'); tab$test_status[positions] <- 'tested'
+  tab$BH_FDR[positions] <- p.adjust(p[valid],'BH')
+  tab$FDR[positions] <- tab$BH_FDR[positions]; tab$FDR_PValue[positions] <- p[valid]
+  tab$moderated_t[positions] <- fit$t[valid,1]
+  tab$df_total[positions] <- rep_len(fit$df.total,nrow(fit))[valid]
+  if(fdr_method!='BH' && length(positions)) {
+   statistic <- if(fdr_method=='fdrtool_pvalue') 'pvalue' else 'normal'
+   values <- if(statistic=='pvalue') p[valid] else as.numeric(fit$t[valid,1])
+   captured <- character()
+   # Plot once from the same fitted object used for the reported q-values.
+   estimate_fdr <- function() {
+    pdf(file.path(folder,'fdrtool_diagnostics.pdf'),width=12,height=5)
+    on.exit(dev.off())
+    withCallingHandlers(fdrtool::fdrtool(values,statistic=statistic,cutoff.method='fndr',plot=TRUE,verbose=FALSE),
+     warning=function(w){captured <<- c(captured,conditionMessage(w));invokeRestart('muffleWarning')})
+   }
+   empirical <- tryCatch(estimate_fdr(),error=function(e)
+    stop('fdrtool failed for ',name,': ',conditionMessage(e),'. No BH fallback was substituted.'))
+   if(any(!is.finite(empirical$qval)) || any(empirical$qval<0 | empirical$qval>1) ||
+      any(!is.finite(empirical$pval)) || any(empirical$pval<0 | empirical$pval>1))
+    stop('fdrtool produced invalid probabilities for ',name)
+   tab$FDR[positions] <- empirical$qval
+   tab$FDR_PValue[positions] <- empirical$pval
+   tab$local_fdr[positions] <- empirical$lfdr
+   parameters <- data.frame(FDR_method=fdr_method,input_statistic=statistic,
+     cutoff_method='fndr',tested_features=length(values),fdrtool_version=as.character(packageVersion('fdrtool')),
+     empirical$param,check.names=FALSE)
+   write.csv(parameters,file.path(folder,'fdrtool_parameters.csv'),row.names=FALSE,na='')
+   writeLines(if(length(captured))unique(captured) else 'No fdrtool warnings.',file.path(folder,'fdrtool_warnings.txt'))
+   write.csv(data.frame(FeatureID=tab$FeatureID[positions],input_statistic=values,
+     original_limma_PValue=p[valid],FDR_PValue=empirical$pval,q_value=empirical$qval,local_fdr=empirical$lfdr),
+     file.path(folder,'fdrtool_diagnostics.csv'),row.names=FALSE,na='')
+  }
+  tab$test_status[positions] <- 'tested'
  } else tab$test_status[eligible] <- 'insufficient features for variance moderation'
  tab$significant <- !is.na(tab$FDR)&tab$FDR<fdr; tab$method <- rep(if(blocked) 'paired limma-trend' else 'limma-trend',nrow(tab)); tab$direction <- rep(paste(pair[2],'minus',pair[1]),nrow(tab))
  write.csv(tab,file.path(folder,'all_results.csv'),row.names=FALSE,na=''); write.csv(tab[tab$significant,,drop=FALSE],file.path(folder,'significant_results.csv'),row.names=FALSE,na='')
- index[[length(index)+1]] <- data.frame(comparison=name,baseline=pair[1],comparison_condition=pair[2],method=if(blocked) 'paired limma-trend' else 'limma-trend',reported_features=nrow(tab),tested_features=sum(!is.na(tab$PValue)),significant_features=sum(tab$significant),fdr=fdr,full_results=paste0(name,'/all_results.csv'),significant_results=paste0(name,'/significant_results.csv'))
+ index[[length(index)+1]] <- data.frame(comparison=name,baseline=pair[1],comparison_condition=pair[2],method=if(blocked) 'paired limma-trend' else 'limma-trend',FDR_method=fdr_method,reported_features=nrow(tab),tested_features=sum(!is.na(tab$PValue)),significant_features=sum(tab$significant),fdr=fdr,full_results=paste0(name,'/all_results.csv'),significant_results=paste0(name,'/significant_results.csv'))
 }
 write.csv(do.call(rbind,index),file.path(out,'results_index.csv'),row.names=FALSE)
 writeLines(capture.output(sessionInfo()),file.path(out,'R_session.txt'))

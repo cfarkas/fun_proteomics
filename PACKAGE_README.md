@@ -27,6 +27,8 @@ The setup page opens in your browser. Keep the terminal open, then:
 
 The example uses independent biological replicates. Conditions come from your assignments; filenames do not determine them. Keep the raw-data and output folders separate. The input guide below explains the FASTA and registered-tool requirements for each acquisition method.
 
+For DIA and imported intensity comparisons, **BH remains the default**. Optional `fdrtool_pvalue` and `fdrtool_normal` methods are available in advanced setup and with `--fdr-method`. The [FDR-method guide](docs/fdr_methods.md) explains the separate original and recalibrated P-value columns.
+
 ## Install
 
 Linux, Python 3.11 or newer:

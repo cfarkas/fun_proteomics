@@ -128,6 +128,7 @@ def main():
     parser.add_argument('--independent-samples', action='store_true', help='Explicitly confirm one independent biological sample per row; use sample IDs as replicate IDs')
     parser.add_argument('--hash-raw', action='store_true', help='SHA256 every raw component in addition to SQLite/size checks')
     parser.add_argument('--fdr', type=float, default=.05)
+    parser.add_argument('--fdr-method', choices=['BH','fdrtool_pvalue','fdrtool_normal'],default='BH')
     parser.add_argument('--min-replicates', type=int, default=2)
     parser.add_argument('--rscript', default=os.environ.get('PROTEOMICS_RSCRIPT', 'Rscript'))
     args = parser.parse_args()
@@ -150,7 +151,7 @@ def main():
         if 'source_replicate' not in samples:
             samples['source_replicate'] = samples.replicate
         samples['replicate'] = samples.sample_id
-    options = differential_options(dict(enabled=True, comparisons='all_pairwise', fdr=args.fdr,
+    options = differential_options(dict(enabled=True, comparisons='all_pairwise', fdr=args.fdr, fdr_method=args.fdr_method,
                                         min_replicates=args.min_replicates, rscript=args.rscript, gene_level=True))
     services = {}
     for value in args.service_matrix:

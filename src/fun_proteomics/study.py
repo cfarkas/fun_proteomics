@@ -23,7 +23,7 @@ MODES = ('matrix', 'dia', 'dda', 'baf', 'continue')
 PATH_FIELDS = ('matrix', 'samples', 'fasta', 'service_matrix', 'service_samples', 'source_run',
                'study_config', 'raw_root', 'msfragger_zip', 'ionquant_zip', 'diatracer_zip', 'python', 'fragpipe_zip')
 FIELDS = set(PATH_FIELDS) | {'fun_proteomics_project', 'project', 'mode', 'independent_samples',
-         'differential', 'quantity', 'normalization', 'fdr', 'min_replicates', 'cpus', 'memory_gib',
+         'differential', 'quantity', 'normalization', 'fdr', 'fdr_method', 'min_replicates', 'cpus', 'memory_gib',
          'python', 'sample_rows', 'assignment_board', 'contains_decoys', 'dda_plus', 'sheet', 'service_sheet', 'subject_column'}
 
 
@@ -44,6 +44,8 @@ def add_commands(sub):
     p.add_argument('--no-differential', action='store_true', help='Produce matrices and QC without statistical comparisons')
     p.add_argument('--quantity', choices=['auto','value','maxlfq','intensity','spectral_count'], default='auto')
     p.add_argument('--normalization', choices=['none','median'], default='none')
+    p.add_argument('--fdr-method', choices=['BH','fdrtool_pvalue','fdrtool_normal'],default='BH',
+                   help='Intensity comparisons (matrix/DIA): BH, fdrtool P-value input, or empirical-normal sensitivity')
     p.add_argument('--cpus', type=int, default=min(8, os.cpu_count() or 1))
     p.add_argument('--memory-gib', type=int, default=32)
     p.add_argument('--port', type=int, default=0, help='Local browser port; default selects an available port')
@@ -73,12 +75,16 @@ def normalize(data):
     if not isinstance(data, dict) or set(data)-FIELDS:
         raise ValueError('Unknown setup settings: '+str(sorted(set(data)-FIELDS) if isinstance(data,dict) else 'expected an object'))
     cfg = dict(fun_proteomics_project=FORMAT, mode='matrix', independent_samples=False, differential=True,
-               quantity='auto', normalization='none', fdr=.05, min_replicates=2, cpus=min(8,os.cpu_count() or 1), memory_gib=32)
+               quantity='auto', normalization='none', fdr=.05, fdr_method='BH', min_replicates=2, cpus=min(8,os.cpu_count() or 1), memory_gib=32)
     cfg.update(data)
     if cfg['fun_proteomics_project'] != FORMAT:
         raise ValueError('Unsupported saved project format')
     if cfg['mode'] not in MODES:
         raise ValueError('Choose matrix, dia, dda, baf or continue')
+    if cfg['fdr_method'] not in ('BH','fdrtool_pvalue','fdrtool_normal'):
+        raise ValueError('fdr_method must be BH, fdrtool_pvalue or fdrtool_normal')
+    if cfg['fdr_method']!='BH' and cfg['mode'] not in ('matrix','dia'):
+        raise ValueError('fdrtool is available for matrix and DIA intensity analyses; other modes retain their existing methods')
     for field in ('independent_samples','differential'):
         if not isinstance(cfg[field],bool): raise ValueError(field+' must be true or false')
     for field in ('project', *PATH_FIELDS):
@@ -162,7 +168,7 @@ def raw_study(cfg, samples, workflow):
              dia={'confirmed':True, 'canonical_fasta':cfg.get('fasta'),
                   'install_cache':str(workflow/'.runtime/dia-cache'),
                   'differential':dict(enabled=cfg['differential'],comparisons='all_pairwise',gene_level=True,
-                       fdr=cfg['fdr'],min_replicates=cfg['min_replicates'],normalization=cfg['normalization'])})
+                       fdr=cfg['fdr'],fdr_method=cfg['fdr_method'],min_replicates=cfg['min_replicates'],normalization=cfg['normalization'])})
         if cfg.get('raw_root'): base['dia']['raw_root']=cfg['raw_root']
         local=workflow/'.runtime/dia-python/bin/python'
         if cfg.get('python'): base['dia']['python']=cfg['python']
@@ -239,7 +245,7 @@ def check(cfg, workflow):
         from .baf_study import check as check_baf
         return check_baf(cfg,frame,workflow)
     options=differential_options(dict(enabled=cfg['differential'],comparisons='all_pairwise',
-                  fdr=cfg['fdr'],min_replicates=cfg['min_replicates'],normalization=cfg['normalization'], **({'subject_column':cfg['subject_column']} if cfg.get('subject_column') else {})))
+                  fdr=cfg['fdr'],fdr_method=cfg['fdr_method'],min_replicates=cfg['min_replicates'],normalization=cfg['normalization'], **({'subject_column':cfg['subject_column']} if cfg.get('subject_column') else {})))
     for key in ('sample_type','cohort'):
         if mode=='matrix' and key in frame and frame[key].nunique()>1:
             raise ValueError('Use a separate matrix project for each '+key)
@@ -254,6 +260,11 @@ def check(cfg, workflow):
                 summary=f'{len(frame)} independent samples; {pairs} condition pairs at protein and available gene levels.' if cfg['independent_samples'] else f'{len(frame)} samples; matrices and quality control only.',warnings=[])
     report['output_folder']=str(project)
     report['results_folder']=str(project/'results/final_results')
+    if mode in ('matrix','dia') and cfg['differential']:
+        report['FDR_method']=cfg['fdr_method']
+        report['summary']+=' FDR method: '+cfg['fdr_method']+'.'
+        if cfg['fdr_method']=='fdrtool_normal':
+            report['warnings'].append('Empirical-normal fdrtool recalibrates moderated t statistics. Its FDR_PValue and q values do not adjust the original limma PValue; review null diagnostics.')
     if cfg.get('subject_column') and cfg['differential']:
         report['donors']=int(frame[cfg['subject_column']].nunique())
         report['summary']=f"{len(frame)} biological sample quantities from {report['donors']} donors; {pairs} paired condition comparisons at protein and available gene levels."
@@ -403,7 +414,7 @@ def run_study(path,args,workflow,check_only=False):
     root,state=result_location(cfg)
     if cfg['mode']!='continue' and not state and not getattr(args,'print_command',False):
         from .requirements import readiness
-        ready=readiness(workflow,args,'matrix' if cfg['mode']=='baf' else cfg['mode'],cfg['differential'] or cfg['mode']=='dda')
+        ready=readiness(workflow,args,'matrix' if cfg['mode']=='baf' else cfg['mode'],cfg['differential'] or cfg['mode']=='dda',fdr_method=cfg['fdr_method'])
         if ready['missing']:
             raise ValueError('Missing tools: '+', '.join(ready['missing'])+'. Run fun_proteomics install --conda, then doctor --mode '+cfg['mode'])
     with locked(project):
@@ -426,7 +437,7 @@ def run_study(path,args,workflow,check_only=False):
             if not getattr(args,'print_command',False): samples.to_csv(sheet,index=False)
             command=[*flags,'quantify','--matrix',cfg['matrix'],'--samples',str(sheet),'--outdir',str(root),
                      '--quantity',cfg['quantity'],'--normalization',cfg['normalization'],'--fdr',str(cfg['fdr']),
-                     '--min-replicates',str(cfg['min_replicates'])]
+                     '--min-replicates',str(cfg['min_replicates']),'--fdr-method',cfg['fdr_method']]
             if cfg['differential']: command.append('--differential')
             for field in ('fasta','service_matrix','sheet','service_sheet','subject_column'):
                 if cfg.get(field): command += ['--'+field.replace('_','-'),cfg[field]]

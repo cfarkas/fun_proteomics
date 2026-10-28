@@ -25,7 +25,8 @@ def from_args(args):
     cfg.update(project=getattr(args,'study_project',None),mode=getattr(args,'mode',None) or 'matrix',
                independent_samples=getattr(args,'study_independent',False) or False,
                differential=not getattr(args,'no_differential',False),quantity=getattr(args,'quantity','auto'),
-               normalization=getattr(args,'normalization','none'),cpus=getattr(args,'cpus',8),memory_gib=getattr(args,'memory_gib',32))
+               normalization=getattr(args,'normalization','none'),fdr_method=getattr(args,'fdr_method','BH'),
+               cpus=getattr(args,'cpus',8),memory_gib=getattr(args,'memory_gib',32))
     for field in ('sheet','service_sheet','subject_column'):
         if getattr(args,field,None): cfg[field]=getattr(args,field)
     return cfg

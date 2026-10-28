@@ -5,7 +5,7 @@ rscript="${1:-Rscript}"
 lib="$repo/.runtime/R-library"
 mkdir -p "$lib"
 export R_LIBS="$lib${R_LIBS:+:$R_LIBS}"
-"$rscript" -e 'lib<-strsplit(Sys.getenv("R_LIBS"),":",fixed=TRUE)[[1]][1];options(repos=c(CRAN="https://cloud.r-project.org"));if(!requireNamespace("BiocManager",quietly=TRUE))install.packages("BiocManager",lib=lib);missing<-c("edgeR","limma","jsonlite","statmod","data.table");missing<-missing[!vapply(missing,requireNamespace,logical(1),quietly=TRUE)];if(length(missing))BiocManager::install(missing,lib=lib,ask=FALSE,update=FALSE)'
+"$rscript" -e 'lib<-strsplit(Sys.getenv("R_LIBS"),":",fixed=TRUE)[[1]][1];options(repos=c(CRAN="https://cloud.r-project.org"));if(!requireNamespace("BiocManager",quietly=TRUE))install.packages("BiocManager",lib=lib);missing<-c("edgeR","limma","jsonlite","statmod","data.table","fdrtool");missing<-missing[!vapply(missing,requireNamespace,logical(1),quietly=TRUE)];if(length(missing))BiocManager::install(missing,lib=lib,ask=FALSE,update=FALSE)'
 # Early edgeR 4.0 small-count code can fail on sparse proteomics matrices.
 # These matching Bioconductor releases support R >= 3.6 and are installed locally.
 for spec in 'limma 3.62.2 6abb60905719281fa3ccd5f2a6c201e2878a4c0a0a8e30cec662a541e67fb475' 'edgeR 4.4.2 8620592ce1f3ca573c8a59852a50f6b50c2c942891f92c1142f002eb23607e3f'; do

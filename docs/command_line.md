@@ -168,6 +168,7 @@ The raw sample table has the same shape shown in the DIA example above. Native D
 | `--service-matrix FILE`, `--service-samples FILE`, `--service-sheet NAME` | Optional matched service benchmark and mapping. |
 | `--quantity auto\|value\|maxlfq\|intensity\|spectral_count` | Matrix quantity-column selection. |
 | `--normalization none\|median` | Additional intensity normalization; default `none`. |
+| `--fdr-method BH\|fdrtool_pvalue\|fdrtool_normal` | DIA/matrix intensity FDR method; BH is the default. See [FDR methods](fdr_methods.md) for P-value provenance and empirical-null sensitivity. |
 | `--no-differential` | Export matrices and QC without statistical comparisons. |
 | `--cpus N`, `--memory-gib N` | Requested analysis resources. |
 | `--msfragger-zip FILE`, `--ionquant-zip FILE`, `--diatracer-zip FILE`, `--fragpipe-zip FILE` | Registered DDA/BAF archives and optional local FragPipe archive. |

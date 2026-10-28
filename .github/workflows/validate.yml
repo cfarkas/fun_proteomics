@@ -43,12 +43,13 @@ jobs:
       - name: Install pinned DIA reporting dependencies
         run: pip install -r modules/diapasef/requirements-lock.txt
       - name: Install intensity statistics
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends r-base r-bioc-limma r-bioc-edger r-cran-jsonlite
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends r-base r-bioc-limma r-bioc-edger r-cran-jsonlite r-cran-fdrtool
       - name: Check real reporting code on synthetic DIA reports
         env:
           PROTEOMICS_RSCRIPT: /usr/bin/Rscript
         run: |
           python -m unittest discover -s tests -p test_quantification.py -v
+          python -m unittest discover -s tests -p test_fdrtool.py -v
           python -m unittest discover -s tests -p test_dia_reuse.py -v
           python -m unittest discover -s tests -p test_matrix_catalog.py -v
 
