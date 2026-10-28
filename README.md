@@ -2,6 +2,31 @@
 
 Analyze raw Bruker DDA-PASEF, DIA-PASEF and conventional DDA BAF data, or import a protein quantification table. Get protein and gene matrices, all-versus-all comparisons, quality control, and service detection benchmarks. Every matrix is available as **CSV and TSV**.
 
+## Interactive example: drag .d samples into conditions
+
+After the one-time [installation](#install), start in your working directory. Replace `/path/to/dir` with the directory you want to work in:
+
+```bash
+cd /path/to/dir
+```
+
+Invoke the pipeline interactively:
+
+```bash
+fun_proteomics setup
+```
+
+The setup page opens in your browser. Keep the terminal open, then:
+
+1. Select **DIA-PASEF raw data** or **DDA-PASEF raw data**, matching your acquisition method.
+2. Use **Browse** to choose the parent folder containing your `.d` acquisitions, for example `/path/to/dir/raw`. Each `.d` acquisition is a directory; keep its contents together.
+3. Click **Discover samples** / **Scan .d folders**. Each detected acquisition appears as a sample card in **Unassigned**.
+4. **Drag the sample cards into their condition columns.** For example, drag `C1.d` and `C2.d` into **Control**, and `T1.d` and `T2.d` into **Treatment**. Add or rename conditions to match your experiment. Leave instrument blanks or excluded acquisitions unassigned.
+5. Select the matching search FASTA, review the experimental design and CPU/memory settings, and choose a new output folder such as `/path/to/dir/my-study`.
+6. Click **Save configuration and check**, then **Run / continue analysis**. Open **Results** or **Matrices · CSV & TSV** when the run finishes.
+
+The example uses independent biological replicates. Conditions come from your assignments; filenames do not determine them. Keep the raw-data and output folders separate. The input guide below explains the FASTA and registered-tool requirements for each acquisition method.
+
 ## Install
 
 Linux, Python 3.11 or newer:

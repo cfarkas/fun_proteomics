@@ -8,7 +8,19 @@ Watch the browser walkthrough: select files and an output folder, assign conditi
 
 https://github.com/user-attachments/assets/bcd925bb-c021-4ccb-92fd-8ac3f4603049
 
-Open the browser once with `fun_proteomics setup`, then choose your **output/project folder** in the page. The video uses the [real quick-start download](quick_start.md); follow the same steps with your own files.
+Start in your working directory:
+
+```bash
+cd /path/to/dir
+```
+
+Invoke interactive setup:
+
+```bash
+fun_proteomics setup
+```
+
+For raw data, choose the folder containing your `.d` acquisitions, click **Discover samples** / **Scan .d folders**, then drag the detected sample cards from **Unassigned** into their condition columns. Choose your **output/project folder** in the page. The video uses the [real quick-start download](quick_start.md); follow the same steps with your own files.
 
 Setup opens in your browser on a local, automatically selected port. Keep the launcher terminal open while configuring. Copy the entire URL, including its session code, when opening another browser. Analyses launched with **Run / continue** keep running if you close the setup server; reopen the same project to view progress.
 
