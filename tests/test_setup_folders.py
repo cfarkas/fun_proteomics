@@ -6,6 +6,7 @@ import sys
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -35,6 +36,40 @@ class FolderSetupTests(unittest.TestCase):
                    'X-Session-Token': self.app.token if token is None else token}
         with urlopen(Request(url, json.dumps(data).encode(), headers), timeout=15) as response:
             return json.load(response)
+
+    def test_native_picker_requires_session_and_preserves_results(self):
+        study.imports(ROOT)
+        with patch('native_folders.choose_folder') as choose:
+            with self.assertRaises(HTTPError) as error:
+                self.post('choose-folder', {'path': str(self.root)}, token='')
+            self.assertEqual(error.exception.code, 403)
+            choose.assert_not_called()
+            for result in ({'cancelled': False, 'path': str(self.root)}, {'cancelled': True}):
+                choose.return_value = result
+                self.assertEqual(self.post('choose-folder', {'path': str(self.root), 'target': 'output'}), result)
+                choose.assert_called_with(str(self.root), 'output')
+            self.assertIsNone(self.app.project)
+            self.assertEqual(list(self.root.iterdir()), [])
+
+    def test_headless_picker_offers_browser_fallback(self):
+        study.imports(ROOT)
+        with patch.dict(os.environ, {}, clear=True), patch('native_folders.subprocess.run') as run:
+            result = self.post('choose-folder', {})
+            self.assertTrue(result['unavailable'])
+            self.assertIn('No desktop', result['message'])
+            run.assert_not_called()
+        with patch.dict(os.environ, {'DISPLAY': ':test'}), patch('native_folders.shutil.which', return_value=None):
+            result = self.post('choose-folder', {})
+            self.assertTrue(result['unavailable'])
+            self.assertIn('Zenity or KDialog', result['message'])
+
+    def test_native_picker_errors_are_not_cancellations_or_fallbacks(self):
+        study.imports(ROOT)
+        with patch('native_folders.choose_folder', side_effect=ValueError('A folder chooser is already open.')):
+            with self.assertRaises(HTTPError) as error:
+                self.post('choose-folder', {})
+            self.assertEqual(error.exception.code, 400)
+            self.assertIn('already open', json.load(error.exception)['error'])
 
     def test_search_and_folder_filter_precede_the_display_limit(self):
         for index in range(505):

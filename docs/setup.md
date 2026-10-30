@@ -38,9 +38,11 @@ Choose one input type:
 
 The guided raw workflow covers global label-free analysis. For phosphoproteomics, immunopeptidomics, DDA+, database preparation or specialist options, use `fun_proteomics ui --advanced`; see the [advanced reference](advanced_reference.md). An existing native DIA/DDA JSON can also be selected under Optional analysis settings.
 
-The folder picker provides **Working folder**, **Home**, mounted-drive shortcuts, clickable breadcrumbs, **Up one folder**, and a search box. Search filters the current folder before the display limit is applied. **New folder** creates a project folder using just a name; an existing folder is never overwritten. Direct path entry remains optional.
+**Choose folder** opens the system folder dialog on the computer running the analysis: Zenity on Ubuntu, or KDialog when Zenity is unavailable. This applies to raw-data folders, output folders, existing runs and **Open saved project**. Selecting raw data discovers samples automatically; cancelling preserves the current selection. Use the dialog’s new-folder control to create an output folder.
 
-The top **Discover samples** button opens the picker if no input has been selected, or refreshes discovery for the selected input. An output folder is only required when reviewing and saving. Expand **Optional: import sample groups or choose an Excel sheet** to supply a sample table or worksheet name.
+Without a desktop session or either dialog tool, setup falls back to its browser picker. It provides **Working folder**, **Home**, mounted-drive shortcuts, clickable breadcrumbs, **Up one folder**, search and **New folder**. Search filters before the display limit is applied. Direct path entry remains optional.
+
+The top **Discover samples** button opens the picker if no input has been selected, or refreshes discovery for the selected input. An output folder is only required when reviewing and saving. Expand **Optional: import sample groups or choose an Excel sheet** to supply a sample table or worksheet name. A CSV code box below **Sample table** shows the expected columns for the selected data type, including `raw_path` for raw acquisitions. Relative raw paths are resolved from the CSV’s folder.
 
 Assign samples to conditions using the interactive board:
 

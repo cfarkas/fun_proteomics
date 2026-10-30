@@ -7,11 +7,16 @@ import threading
 
 _DIALOG_LOCK = threading.Lock()
 
+
+class FolderChooserUnavailable(ValueError):
+    """The current session cannot provide a desktop folder dialog."""
+
+
 def choose_folder(initial='', target='input'):
     if target not in ('input','output','tools'):
         raise ValueError('Choose an input, output or tools folder.')
     if not (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')):
-        raise ValueError('No desktop session. Open the interface on the analysis computer, or enter the folder path directly.')
+        raise FolderChooserUnavailable('No desktop session. Open the interface on the analysis computer, or enter the folder path directly.')
     folder=Path(initial).expanduser().resolve() if initial else Path.home()
     while not folder.is_dir() and folder!=folder.parent:
         folder=folder.parent
@@ -23,7 +28,7 @@ def choose_folder(initial='', target='input'):
     elif kdialog:
         command=[kdialog,'--getexistingdirectory',str(folder),'--title',title]
     else:
-        raise ValueError('System folder chooser unavailable. Install Zenity or KDialog, or enter the folder path directly.')
+        raise FolderChooserUnavailable('System folder chooser unavailable. Install Zenity or KDialog, or enter the folder path directly.')
     if not _DIALOG_LOCK.acquire(blocking=False):
         raise ValueError('A folder chooser is already open. Select a folder or cancel that window first.')
     try:

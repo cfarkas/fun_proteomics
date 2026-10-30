@@ -25,6 +25,16 @@ header{background:white;color:var(--ink);border-bottom:1px solid var(--line);pad
 <div data-modes="dia dda baf" hidden><label for="raw_root">Folder containing your .d samples</label><div class="inline"><input id="raw_root" placeholder="Choose your raw-data folder"><button class="secondary" data-browse="raw_root" data-kind="directory">Choose folder</button></div><p class="hint">Selecting a folder discovers its samples automatically. Blank acquisitions are excluded.</p></div>
 <details id="input-options" data-modes="matrix dia dda baf"><summary>Optional: import sample groups or choose an Excel sheet</summary>
 <label for="samples">Sample table</label><div class="inline"><input id="samples" placeholder="Choose a CSV or TSV sample table"><button class="secondary" data-browse="samples">Choose file</button></div><p class="hint">A table with sample_id and condition can fill in your groups. Raw-data tables also need raw_path. Otherwise, assign groups below.</p>
+<div data-modes="matrix"><p class="hint">Example <code>samples.csv</code> — sample IDs must match the samples in your matrix:</p><pre aria-label="Example sample table for a matrix"><code>sample_id,condition
+C1,Control
+C2,Control
+T1,Treatment
+T2,Treatment</code></pre></div>
+<div data-modes="dia dda baf" hidden><p class="hint">Example <code>samples.csv</code> for raw data:</p><pre aria-label="Example sample table for raw data"><code>sample_id,condition,raw_path
+C1,Control,raw/C1.d
+C2,Control,raw/C2.d
+T1,Treatment,raw/T1.d
+T2,Treatment,raw/T2.d</code></pre><p class="hint">Replace the example paths with your .d folders. Relative paths start from the folder containing the CSV; full paths also work.</p></div>
 <div data-modes="matrix"><label for="sheet">Excel worksheet</label><input id="sheet" placeholder="Detect automatically"><p class="hint">Choose a sheet by name only if your workbook contains several protein quantity sheets.</p></div></details>
 <section id="samples-card" class="assignment-intro" hidden aria-labelledby="assign-title"><h2 id="assign-title">Assign and name your samples</h2><p class="hint">Drag detected samples into a condition, or use the dropdown on each card. Drag between columns to correct an assignment, or back to <strong>Unassigned</strong> to exclude a sample. Edit sample and condition names as needed.</p>
 <div class="board-tools"><div class="inline"><input id="new-condition" placeholder="New condition name" aria-label="New condition name"><button id="add-condition" class="secondary">Add condition</button></div><button id="select-none" class="secondary">Clear assignments</button></div>
@@ -78,7 +88,7 @@ $('next').onclick=()=>busy($('next'),async()=>{if(mode()!=='continue'&&!$('study
 for(const input of document.querySelectorAll('main input:not(#sample-filter):not(#new-condition),main select'))input.addEventListener('input',()=>{invalidate();updateModes();});
 $('check').onclick=()=>busy($('check'),async()=>{preview(await api('check',{config:collect()}));message('Inputs checked. Save configuration to enable Run.');});
 $('save').onclick=()=>busy($('save'),async()=>{const v=await api('save',{config:collect()});fill(v.config);saved=true;preview(v.report);message('Configuration saved: '+v.path);status(await api('status'));step(3);});
-$('load').onclick=()=>openPicker('project','directory','load');
+$('load').onclick=()=>busy($('load'),()=>openPicker('project','directory','load'));
 $('run').onclick=()=>busy($('run'),async()=>{status(await api('run',{}));message('Analysis launched. Progress appears below.');});
 $('stop').onclick=()=>busy($('stop'),async()=>message((await api('stop',{})).message));
 async function browse(path,query=''){
@@ -101,21 +111,31 @@ async function browse(path,query=''){
 }
 let browseTimer;
 function navigateFolder(path){clearTimeout(browseTimer);$('browse-search').value='';$('new-folder-controls').hidden=true;return browse(path);}
-function openPicker(target,kind='file',intent='select'){
+async function openPicker(target,kind='file',intent='select'){
+  if(kind==='directory'){
+    message('Choose a folder in the system dialog.');
+    const v=await api('choose-folder',{path:$(target).value||lastFolder||'.',target:target==='project'&&intent!=='load'?'output':'input'});
+    if(v.cancelled){message('');return;}
+    if(!v.unavailable){lastFolder=v.path;message('');await applySelectedPath(v.path,target,intent);return;}
+    message(v.message+' You can also use the browser picker below.');
+  }
   browseTarget=target;browseKind=kind;browseIntent=intent;
   $('picker-title').textContent=intent==='load'?'Open a saved project':kind==='directory'?'Choose a folder':'Choose a file';
   $('choose-folder').hidden=kind!=='directory';$('choose-folder').textContent=intent==='load'?'Open this project':'Use this folder';
   $('new-folder').hidden=target!=='project'||intent==='load';$('new-folder-name').value='';
   $('picker').showModal();navigateFolder($(target).value||lastFolder||'.');
 }
+async function applySelectedPath(path,target,intent){
+  if(intent==='load'){const v=await api('load',{project:path});fill(v.config);saved=true;message('Project opened. Continue from its saved settings.');status(v.status);step(3);return;}
+  $(target).value=path;if(['matrix','samples','raw_root'].includes(target))dropBoard();invalidate();outputPreview();
+  if(['matrix','raw_root'].includes(target))await discoverSamples();
+}
 async function selectPath(path){
   const target=browseTarget,intent=browseIntent;
   $('picker').close();++browseRequest;
-  if(intent==='load')return busy($('load'),async()=>{const v=await api('load',{project:path});fill(v.config);saved=true;message('Project opened. Continue from its saved settings.');status(v.status);step(3);});
-  $(target).value=path;if(['matrix','samples','raw_root'].includes(target))dropBoard();invalidate();outputPreview();
-  if(['matrix','raw_root'].includes(target))await busy($('discover'),discoverSamples);
+  await busy($(intent==='load'?'load':'discover'),()=>applySelectedPath(path,target,intent));
 }
-for(const b of document.querySelectorAll('[data-browse]'))b.onclick=()=>openPicker(b.dataset.browse,b.dataset.kind||'file');
+for(const b of document.querySelectorAll('[data-browse]'))b.onclick=()=>busy(b,()=>openPicker(b.dataset.browse,b.dataset.kind||'file'));
 $('browse-go').onclick=()=>navigateFolder($('browse-path').value);
 $('browse-path').onkeydown=e=>{if(e.key==='Enter')navigateFolder($('browse-path').value);};
 $('browse-up').onclick=()=>navigateFolder(browseParent);
@@ -227,7 +247,7 @@ async function discoverSamples(){
 }
 async function discoverOrChoose(){
   const source=mode()==='matrix'?'matrix':'raw_root';
-  if(!$(source).value.trim()&&(source==='matrix'||!$('samples').value.trim())){openPicker(source,source==='raw_root'?'directory':'file');return;}
+  if(!$(source).value.trim()&&(source==='matrix'||!$('samples').value.trim()))return openPicker(source,source==='raw_root'?'directory':'file');
   await discoverSamples();
 }
 $('discover').onclick=()=>busy($('discover'),discoverOrChoose);

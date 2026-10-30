@@ -20,6 +20,16 @@ from .continuation import read_json, write_json
 from .setup_terminal import from_args
 
 
+def choose_directory(data, workflow):
+    """Use the desktop dialog, with browser navigation for headless sessions."""
+    study.imports(workflow)
+    from native_folders import FolderChooserUnavailable, choose_folder
+    try:
+        return choose_folder(data.get('path') or str(Path.cwd()), data.get('target', 'input'))
+    except FolderChooserUnavailable as error:
+        return {'unavailable': True, 'message': str(error)}
+
+
 def browse_directory(data):
     """List a folder with navigation and filtering before pagination."""
     path = Path(data.get('path') or Path.cwd()).expanduser().resolve()
@@ -200,6 +210,8 @@ def make_server(app,port=0):
                 if not 0<size<=2_000_000:raise ValueError('Invalid request size')
                 data=json.loads(self.rfile.read(size))
                 if not isinstance(data,dict):raise ValueError('Expected an object')
+                if self.path=='/api/choose-folder':
+                    return self.reply(choose_directory(data, app.workflow))
                 if self.path=='/api/browse':
                     return self.reply(browse_directory(data))
                 if self.path=='/api/mkdir':
