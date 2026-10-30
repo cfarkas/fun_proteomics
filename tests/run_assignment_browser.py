@@ -38,6 +38,9 @@ def main():
                 name=page.get_by_role('textbox',name='Rename condition Treatment',exact=True);name.fill('Disease');name.press('Tab')
                 page.locator('#new-condition').fill('Recovery');page.locator('#add-condition').click()
                 for sample,condition in [('C1','Control'),('C2','Control'),('A1','Disease'),('A2','Disease'),('B1','Recovery'),('B2','Recovery')]:drag(page,sample,condition)
+                page.locator('#discover').click();page.wait_for_function('!operationBusy')
+                assert '6 / 6 assigned' in page.locator('#sample-count').inner_text()
+                assert page.get_by_label('Condition for A1',exact=True).input_value()=='Disease'
                 drag(page,'C1','');assert '5 / 6 assigned' in page.locator('#sample-count').inner_text();drag(page,'C1','Control')
                 page.get_by_label('Condition for B2',exact=True).select_option('');assert '5 / 6 assigned' in page.locator('#sample-count').inner_text()
                 page.get_by_label('Condition for B2',exact=True).select_option('Recovery')

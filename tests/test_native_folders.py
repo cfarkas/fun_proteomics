@@ -38,3 +38,20 @@ class NativeFolderTests(unittest.TestCase):
   result,command=self.invoke('/tmp','tools')
   self.assertEqual(result['path'],'/tmp')
   self.assertIn('--title=Choose tools folder',command)
+
+ def test_native_file_selection_preserves_spaces_and_checks_file_type(self):
+  with tempfile.TemporaryDirectory(prefix='native files ') as folder:
+   path=Path(folder)/'protein matrix.csv';path.write_text('sample,value\nA,1\n')
+   with patch.dict(os.environ,{'DISPLAY':':1'}),patch.object(native.shutil,'which',side_effect=lambda n:'/usr/bin/zenity' if n=='zenity' else None),patch.object(native.subprocess,'run',return_value=SimpleNamespace(returncode=0,stdout=str(path))) as run:
+    self.assertEqual(native.choose_file(str(path)),{'cancelled':False,'path':str(path)})
+    self.assertNotIn('--directory',run.call_args.args[0])
+    self.assertIn('--filename='+str(path),run.call_args.args[0])
+    run.return_value.stdout=folder
+    with self.assertRaisesRegex(ValueError,'wrong type'):native.choose_file(folder)
+   self.assertFalse(native._DIALOG_LOCK.locked())
+
+ def test_file_dialog_supports_kdialog(self):
+  with tempfile.NamedTemporaryFile() as file:
+   with patch.dict(os.environ,{'DISPLAY':':1'}),patch.object(native.shutil,'which',side_effect=lambda n:'/usr/bin/kdialog' if n=='kdialog' else None),patch.object(native.subprocess,'run',return_value=SimpleNamespace(returncode=0,stdout=file.name)) as run:
+    self.assertEqual(native.choose_file(file.name)['path'],file.name)
+    self.assertIn('--getopenfilename',run.call_args.args[0])

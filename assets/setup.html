@@ -6,7 +6,7 @@
 /* Assign sample cards to user-defined conditions. */
 header{background:white;color:var(--ink);border-bottom:1px solid var(--line);padding:18px max(24px,calc((100vw - 1100px)/2))}header span{color:var(--muted)}
 .layout{display:block;max-width:1100px;margin:30px auto}nav{position:static;margin:0 0 22px}nav>div{display:flex;gap:12px}nav button{width:auto;margin:0}nav p{display:none}
-.sample-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:20px 0}.sample-column{border:1px solid var(--line);border-radius:10px;background:#eef5fc;padding:14px;min-width:0}.sample-column:nth-child(3n){background:#fff3ef}.sample-column[data-condition=""]{background:#f6f8f7}.column-heading{display:flex;gap:8px;align-items:center}.column-heading h3{margin:0;flex:1}.column-heading .condition-name{font-weight:650;min-width:0;padding:6px;border:1px solid transparent;background:transparent}.condition-name:hover,.condition-name:focus{border-color:#a9bdc1;background:white}.column-count{font-size:13px;background:white;border:1px solid var(--line);padding:2px 8px;border-radius:20px}.remove-condition{padding:2px 7px;font-size:20px}.column-note{font-size:12px;color:var(--muted);margin:6px 0 14px}.sample-list{min-height:190px;max-height:490px;overflow-y:auto;padding:2px}.sample-list:empty:after{content:attr(data-empty);display:block;padding:25px 8px;color:var(--muted);font-size:14px;text-align:center}.sample-column.drag-over{outline:3px solid var(--teal);outline-offset:2px}.sample{background:white;border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px;box-shadow:0 2px 5px #192c3b08;overflow-wrap:anywhere}.sample.dragging{opacity:.45}.sample .sample-name{font-weight:650;padding:7px}.sample .type-select{margin-top:10px;font-size:14px;padding:8px}.sample small{display:block;font-size:12px;color:var(--muted);margin:7px 0}.sample details{margin:10px 0 0;padding:0;border:0}.sample summary{font-size:12px;font-weight:400}.sample pre{font-size:11px;padding:8px}.drag-handle{font-size:11px;color:var(--muted);cursor:grab;touch-action:none;user-select:none;margin-bottom:8px}.sample input,.sample select{cursor:auto}.board-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.board-tools .inline{flex:1}.board-tools input{max-width:290px}.board-progress{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:16px 0}.assignment-intro{margin-top:30px;border-top:1px solid var(--line);padding-top:24px}#saved-assignments .scroll{max-height:300px}
+.sample-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin:20px 0}.sample-column{border:1px solid var(--line);border-radius:10px;background:#eef5fc;padding:14px;min-width:0}.sample-column:nth-child(3n){background:#fff3ef}.sample-column[data-condition=""]{background:#f6f8f7}.column-heading{display:flex;gap:8px;align-items:center}.column-heading h3{margin:0;flex:1}.column-heading .condition-name{font-weight:650;min-width:0;padding:6px;border:1px solid transparent;background:transparent}.condition-name:hover,.condition-name:focus{border-color:#a9bdc1;background:white}.column-count{font-size:13px;background:white;border:1px solid var(--line);padding:2px 8px;border-radius:20px}.remove-condition{padding:2px 7px;font-size:20px}.column-note{font-size:12px;color:var(--muted);margin:6px 0 14px}.sample-list{min-height:190px;max-height:490px;overflow-y:auto;padding:2px}.sample-list:empty:after{content:attr(data-empty);display:block;padding:25px 8px;color:var(--muted);font-size:14px;text-align:center}.sample-column.drag-over{outline:3px solid var(--teal);outline-offset:2px}.sample{background:white;border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px;box-shadow:0 2px 5px #192c3b08;overflow-wrap:anywhere}.sample.dragging{opacity:.45}.sample .sample-name{font-weight:650;padding:7px}.sample .type-select{margin-top:10px;font-size:14px;padding:8px}.sample small{display:block;font-size:12px;color:var(--muted);margin:7px 0}.sample details{margin:10px 0 0;padding:0;border:0}.sample summary{font-size:12px;font-weight:400}.sample pre{font-size:11px;padding:8px}.drag-handle{font-size:11px;color:var(--muted);cursor:grab;touch-action:none;user-select:none;margin-bottom:8px}.sample input,.sample select{cursor:auto}.board-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.board-tools .inline{flex:1}.board-tools input{max-width:290px}.board-progress{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:16px 0}.assignment-intro{margin-top:30px;border-top:1px solid var(--line);padding-top:24px}#saved-assignments .scroll{max-height:300px}
 @media(max-width:800px){.sample-board{grid-template-columns:1fr}.sample-list{max-height:320px;min-height:100px}nav>div{gap:4px}nav button{padding:8px;font-size:13px}header{padding:16px}.board-tools{display:block}.board-tools>*{margin-bottom:10px}}
 
 /* Put data discovery first and keep optional controls out of the main flow. */
@@ -34,7 +34,7 @@ T2,Treatment</code></pre></div>
 C1,Control,raw/C1.d
 C2,Control,raw/C2.d
 T1,Treatment,raw/T1.d
-T2,Treatment,raw/T2.d</code></pre><p class="hint">Replace the example paths with your .d folders. Relative paths start from the folder containing the CSV; full paths also work.</p></div>
+T2,Treatment,raw/T2.d</code></pre><p class="hint">Replace the example paths with your .d folders. Relative paths start from the selected raw-data folder, or from the CSV folder if no raw-data folder is selected. Full paths also work.</p></div>
 <div data-modes="matrix"><label for="sheet">Excel worksheet</label><input id="sheet" placeholder="Detect automatically"><p class="hint">Choose a sheet by name only if your workbook contains several protein quantity sheets.</p></div></details>
 <section id="samples-card" class="assignment-intro" hidden aria-labelledby="assign-title"><h2 id="assign-title">Assign and name your samples</h2><p class="hint">Drag detected samples into a condition, or use the dropdown on each card. Drag between columns to correct an assignment, or back to <strong>Unassigned</strong> to exclude a sample. Edit sample and condition names as needed.</p>
 <div class="board-tools"><div class="inline"><input id="new-condition" placeholder="New condition name" aria-label="New condition name"><button id="add-condition" class="secondary">Add condition</button></div><button id="select-none" class="secondary">Clear assignments</button></div>
@@ -70,7 +70,12 @@ let operationBusy=false,saved=false,rows=[],base={},browseTarget='',browseKind='
 const fields=['project','matrix','samples','fasta','service_matrix','service_samples','source_run','study_config','raw_root','msfragger_zip','ionquant_zip','diatracer_zip','sheet','service_sheet','python'];
 const mode=()=>$('mode').value;
 function message(text,error=false){$('message').textContent=text;$('message').classList.toggle('error',error);}
-async function api(route,data){const r=await fetch('/api/'+route,{method:data?'POST':'GET',headers:{'X-Session-Token':token||'',...(data?{'Content-Type':'application/json'}:{})},...(data?{body:JSON.stringify(data)}:{})});const v=await r.json();if(!r.ok)throw Error(v.error||'Request failed');return v;}
+async function api(route,data){
+  let r;
+  try{r=await fetch('/api/'+route,{method:data?'POST':'GET',headers:{'X-Session-Token':token||'',...(data?{'Content-Type':'application/json'}:{})},...(data?{body:JSON.stringify(data)}:{})});}
+  catch(e){throw Error('The local setup server is not responding. Run fun_proteomics setup again and use the URL it prints. Keep this page open to preserve your current assignments.');}
+  const v=await r.json();if(!r.ok)throw Error(v.error||'Request failed');return v;
+}
 function step(n){currentStep=n;document.querySelectorAll('[data-panel]').forEach(p=>p.hidden=Number(p.dataset.panel)!==n);document.querySelectorAll('[data-step]').forEach(b=>b.classList.toggle('active',Number(b.dataset.step)===n));window.scrollTo(0,0);}
 function updateModes(){if(!['matrix','baf'].includes(mode()))$('paired_samples').checked=false;document.querySelectorAll('[data-modes]').forEach(e=>e.hidden=!e.dataset.modes.split(' ').includes(mode()));$('paired-settings').hidden=!$('paired_samples').checked;}
 function collect(){const c={...base,mode:mode(),differential:$('differential').checked,independent_samples:$('independent_samples').checked,quantity:$('quantity').value,normalization:$('normalization').value,fdr_method:['matrix','dia'].includes(mode())?$('fdr_method').value:'BH',cpus:Number($('cpus').value),memory_gib:Number($('memory_gib').value)};for(const f of fields){delete c[f];if($(f).value.trim())c[f]=$(f).value.trim();}delete c.subject_column;if($('paired_samples').checked)c.subject_column=$('subject_column').value.trim()||'subject';delete c.sample_rows;delete c.assignment_board;if(board)c.assignment_board=board;else if(rows.length&&!c.samples)c.sample_rows=rows;return c;}
@@ -112,11 +117,11 @@ async function browse(path,query=''){
 let browseTimer;
 function navigateFolder(path){clearTimeout(browseTimer);$('browse-search').value='';$('new-folder-controls').hidden=true;return browse(path);}
 async function openPicker(target,kind='file',intent='select'){
-  if(kind==='directory'){
-    message('Choose a folder in the system dialog.');
-    const v=await api('choose-folder',{path:$(target).value||lastFolder||'.',target:target==='project'&&intent!=='load'?'output':'input'});
+  {
+    message('Choose a '+(kind==='directory'?'folder':'file')+' in the system dialog.');
+    const v=await api(kind==='directory'?'choose-folder':'choose-file',{path:$(target).value||lastFolder||'.',target:kind==='file'?target:target==='project'&&intent!=='load'?'output':'input'});
     if(v.cancelled){message('');return;}
-    if(!v.unavailable){lastFolder=v.path;message('');await applySelectedPath(v.path,target,intent);return;}
+    if(!v.unavailable){lastFolder=kind==='directory'?v.path:v.path.slice(0,v.path.lastIndexOf('/'))||'/';message('');await applySelectedPath(v.path,target,intent);return;}
     message(v.message+' You can also use the browser picker below.');
   }
   browseTarget=target;browseKind=kind;browseIntent=intent;
@@ -241,7 +246,13 @@ function filterCards(){
 }
 async function discoverSamples(){
   const c=collect();delete c.assignment_board;
-  const v=await api('discover',{config:c});board=v.board;rows=[];boardFilter='';$('sample-filter').value='';invalidate();renderBoard();
+  const v=await api('discover',{config:c});
+  if(board&&Object.keys(board.source).length===Object.keys(v.board.source).length&&Object.keys(board.source).every(k=>board.source[k]===v.board.source[k])){
+    const key=r=>r.raw_path||r.run||r.detected_sample||r.sample_id,previous=new Map(board.rows.map(r=>[key(r),r]));
+    v.board.rows=v.board.rows.map(r=>previous.has(key(r))?{...r,...previous.get(key(r))}:r);
+    v.board.conditions=[...board.conditions];
+  }
+  board=v.board;rows=[];boardFilter='';$('sample-filter').value='';invalidate();renderBoard();
   message('Detected '+board.rows.length+' samples. Drag cards into conditions; Unassigned samples are excluded.');
   $('samples-card').scrollIntoView({block:'start'});
 }

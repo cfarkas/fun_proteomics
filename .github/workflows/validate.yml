@@ -80,9 +80,11 @@ jobs:
           PROTEOMICS_RSCRIPT: /usr/bin/Rscript
         run: |
           python -m unittest discover -s tests -p test_package_cli.py -v
+          python -m unittest discover -s tests -p test_completed_dia.py -v
           python tests/run_package_smoke.py
           python -m unittest discover -s tests -p test_guided_setup.py -v
           python -m unittest discover -s tests -p test_setup_worker_environment.py -v
+          python -m unittest discover -s tests -p test_setup_session.py -v
           python tests/run_guided_smoke.py
           FUN_PROTEOMICS_TEST_INSTALLED=1 python -m unittest discover -s tests -p test_provider_workbooks.py -v
       - name: Test installed drag-and-drop setup in Chromium

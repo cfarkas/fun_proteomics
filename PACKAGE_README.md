@@ -16,14 +16,14 @@ Invoke the pipeline interactively:
 fun_proteomics setup
 ```
 
-The setup page opens in your browser. Keep the terminal open, then:
+The setup page opens in your browser and stays available after the terminal closes:
 
 1. In **Discover samples**, choose your data type, then click **Choose folder** (raw `.d` data) or **Choose file** (a protein matrix). Samples appear automatically. The top **Discover samples** button also opens the picker when no input is selected.
 2. **Assign samples to conditions.** Drag cards into **Control**, **Treatment**, or groups you add. Each card also has a condition dropdown. Leave excluded samples unassigned; raw-data discovery skips blanks.
 3. Click **Next: review & save**, then **Choose folder** for your results. Browse to a parent folder and use **New folder** to create a project by name. Choose the required FASTA and confirm the experimental design. Optional settings stay collapsed.
 4. Click **Save and continue**, then **Run / continue analysis**. Open **Results** or **Matrices · CSV & TSV** when the run finishes.
 
-No full paths need to be typed. **Choose folder** opens the system folder dialog on the analysis computer (Ubuntu: Zenity; KDE: KDialog), including when opening a saved project. Without a desktop dialog, setup uses its browser picker with shortcuts, breadcrumbs and search. Expand the optional sample-table section for a CSV example matching your data type.
+No full paths need to be typed. **Choose folder** and **Choose file** open system dialogs on the analysis computer (Ubuntu: Zenity; KDE: KDialog), including when opening a saved project. Starting setup inside a raw-data folder detects DIA, DDA or BAF from acquisition metadata and lists the samples automatically. Without a desktop dialog, setup uses its browser picker with shortcuts, breadcrumbs and search. Expand the optional sample-table section for a CSV example matching your data type.
 
 The example uses independent biological replicates. Conditions come from your assignments; filenames do not determine them. Keep the raw-data and output folders separate. The input guide below explains the FASTA and registered-tool requirements for each acquisition method.
 
@@ -64,7 +64,7 @@ Choose **one** of the following launch methods. **`--project` is your output fol
 
 ### A) Interactive settings
 
-Follow the video above. Open the browser with `fun_proteomics setup`, then choose your data. Keep the terminal open. In the local browser:
+Follow the video above. Open the browser with `fun_proteomics setup`, then choose your data. Repeat the same setup command to reopen the session. In the local browser:
 
 1. Choose a matrix, raw-data folder or previous run with its file/folder picker.
 2. Samples are discovered automatically when you select an input. Drag sample cards into condition columns. Add or rename conditions; move excluded samples to **Unassigned**. A sample table can prefill assignments.

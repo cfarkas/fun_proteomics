@@ -22,7 +22,7 @@ fun_proteomics setup
 
 Start with **Discover samples** at the top. Choose your data type, then use **Choose folder** for raw `.d` data or **Choose file** for a matrix. Selecting the input discovers samples automatically. Assign their conditions, then choose the output folder in **Review & save**. No full paths need to be typed. The video uses the [real quick-start download](quick_start.md); follow the same steps with your own files.
 
-Setup opens in your browser on a local, automatically selected port. Keep the launcher terminal open while configuring. Copy the entire URL, including its session code, when opening another browser. Analyses launched with **Run / continue** keep running if you close the setup server; reopen the same project to view progress.
+Setup opens in your browser on a local, automatically selected port. The setup server runs independently of the launcher terminal. Repeating the same setup command reopens its existing session. Use `--no-browser` to run a foreground server without opening a browser; in that mode, keep the terminal open. Copy the entire URL, including its session code, when opening another browser. Analyses launched with **Run / continue** keep running if you close the setup server; reopen the same project to view progress.
 
 ### 1. Discover and assign samples
 
@@ -38,11 +38,13 @@ Choose one input type:
 
 The guided raw workflow covers global label-free analysis. For phosphoproteomics, immunopeptidomics, DDA+, database preparation or specialist options, use `fun_proteomics ui --advanced`; see the [advanced reference](advanced_reference.md). An existing native DIA/DDA JSON can also be selected under Optional analysis settings.
 
-**Choose folder** opens the system folder dialog on the computer running the analysis: Zenity on Ubuntu, or KDialog when Zenity is unavailable. This applies to raw-data folders, output folders, existing runs and **Open saved project**. Selecting raw data discovers samples automatically; cancelling preserves the current selection. Use the dialog’s new-folder control to create an output folder.
+**Choose folder** and **Choose file** open system dialogs on the computer running the analysis: Zenity on Ubuntu, or KDialog when Zenity is unavailable. This applies to raw-data folders, output folders, existing runs and **Open saved project**. Starting setup from a raw-data folder detects its acquisition type from metadata and discovers its samples. Selecting raw data also discovers samples automatically; cancelling preserves the current selection. Rediscovering the same input keeps your edited sample names and condition assignments. Use the dialog’s new-folder control to create an output folder.
+
+New DIA runs record the configuration, reference files and selected acquisitions. Completed results with matching inputs and valid output checksums reopen without starting another search. Unrelated files beside the acquisitions do not trigger a new run; changed inputs or damaged outputs retain normal Nextflow continuation.
 
 Without a desktop session or either dialog tool, setup falls back to its browser picker. It provides **Working folder**, **Home**, mounted-drive shortcuts, clickable breadcrumbs, **Up one folder**, search and **New folder**. Search filters before the display limit is applied. Direct path entry remains optional.
 
-The top **Discover samples** button opens the picker if no input has been selected, or refreshes discovery for the selected input. An output folder is only required when reviewing and saving. Expand **Optional: import sample groups or choose an Excel sheet** to supply a sample table or worksheet name. A CSV code box below **Sample table** shows the expected columns for the selected data type, including `raw_path` for raw acquisitions. Relative raw paths are resolved from the CSV’s folder.
+The top **Discover samples** button opens the picker if no input has been selected, or refreshes discovery for the selected input. An output folder is only required when reviewing and saving. Expand **Optional: import sample groups or choose an Excel sheet** to supply a sample table or worksheet name. A CSV code box below **Sample table** shows the expected columns for the selected data type, including `raw_path` for raw acquisitions. Relative raw paths are resolved from the selected raw-data folder, or from the CSV’s folder when no raw-data folder is selected.
 
 Assign samples to conditions using the interactive board:
 

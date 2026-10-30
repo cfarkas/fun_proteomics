@@ -51,6 +51,16 @@ class FolderSetupTests(unittest.TestCase):
             self.assertIsNone(self.app.project)
             self.assertEqual(list(self.root.iterdir()), [])
 
+    def test_native_file_picker_requires_session_and_uses_descriptive_title(self):
+        study.imports(ROOT)
+        with patch('native_folders.choose_file', return_value={'cancelled': True}) as choose:
+            with self.assertRaises(HTTPError) as error:
+                self.post('choose-file', {'path': str(self.root)}, token='')
+            self.assertEqual(error.exception.code, 403)
+            choose.assert_not_called()
+            self.assertEqual(self.post('choose-file', {'path': str(self.root), 'target': 'matrix'}), {'cancelled': True})
+            choose.assert_called_once_with(str(self.root), 'Choose a protein quantification matrix')
+
     def test_headless_picker_offers_browser_fallback(self):
         study.imports(ROOT)
         with patch.dict(os.environ, {}, clear=True), patch('native_folders.subprocess.run') as run:

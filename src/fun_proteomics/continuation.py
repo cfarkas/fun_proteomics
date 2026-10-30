@@ -95,6 +95,53 @@ def verify_recorded_inputs(root, hash_raw=False):
                         raise ValueError('Raw acquisition changed; regenerate its search before continuing: '+str(path))
 
 
+def dia_input_snapshot(config, project, hash_raw=False):
+    """Track declared DIA inputs, not unrelated files beside the acquisitions."""
+    config = Path(config).resolve()
+    data = read_json(config)
+    if not {'samplesheet', 'canonical_fasta', 'raw_root'}.issubset(data):
+        return None
+    base = config.parent
+    def resolve(value):
+        return (base / Path(value).expanduser()).resolve()
+    files = {config, resolve(data['samplesheet']), resolve(data['canonical_fasta'])}
+    for key, name in [('method_config', 'method.toml'), ('requirements_lock', 'requirements-lock.txt')]:
+        files.add(resolve(data.get(key, str(Path(project) / 'modules/diapasef' / name))))
+    if data.get('contaminant_fasta'):
+        files.add(resolve(data['contaminant_fasta']))
+    files.update(resolve(value) for value in data.get('service_matrices', {}).values())
+    with resolve(data['samplesheet']).open(newline='') as handle:
+        rows = list(csv.DictReader(handle, delimiter='\t'))
+    if not rows:
+        raise ValueError('Cannot record an empty DIA sample table')
+    raw_root = resolve(data['raw_root'])
+    raws = sorted({(raw_root / Path(row['raw_path']).expanduser()).resolve() for row in rows})
+    components = []
+    for raw in raws:
+        for name in ('analysis.tdf', 'analysis.tdf_bin'):
+            path = raw / name
+            stat = path.stat()
+            item = dict(path=str(path), bytes=stat.st_size, mtime_ns=stat.st_mtime_ns, ctime_ns=stat.st_ctime_ns)
+            if name == 'analysis.tdf' or hash_raw:
+                item['sha256'] = digest(path)
+            components.append(item)
+    return dict(format=1, hash_raw=bool(hash_raw),
+                files=[dict(path=str(path), sha256=digest(path)) for path in sorted(files)], raw=components)
+
+
+def completed_dia_inputs_match(saved, hash_raw=False):
+    """Legacy runs without an input baseline keep their normal Nextflow resume."""
+    baseline = saved.get('dia_inputs')
+    if saved.get('status') != 'completed' or not baseline or not saved.get('config'):
+        return False
+    try:
+        current = dia_input_snapshot(saved['config'], saved['project'],
+                                     hash_raw or baseline.get('hash_raw', False))
+        return current == baseline
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+
+
 def option_values(argv, flag):
     values = []
     for i, value in enumerate(argv):

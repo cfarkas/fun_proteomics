@@ -94,6 +94,14 @@ raise SystemExit(result.get('code', 0))
                 page.wait_for_function("document.querySelectorAll('.sample').length === 4")
                 assert page.locator('#project').input_value() == ''
                 assert not list(raw.glob('config'))
+                # A disconnected server must report recovery guidance and keep data.
+                page.route('**/api/choose-folder', lambda route: route.abort('connectionrefused'))
+                page.locator('[data-browse=raw_root]').click()
+                page.wait_for_function('!operationBusy')
+                assert 'Run fun_proteomics setup again' in page.locator('#message').inner_text()
+                assert page.locator('#raw_root').input_value() == str(raw)
+                assert page.locator('.sample').count() == 4
+                page.unroute('**/api/choose-folder')
                 if args.native:
                     assert not page.locator('#picker').is_visible()
                     command = json.loads(calls.read_text().splitlines()[-1])
@@ -126,11 +134,20 @@ raise SystemExit(result.get('code', 0))
                     assert not page.locator('#picker').is_visible()
                 # Change data type and select a matrix by navigating the file picker.
                 page.locator('#mode').select_option('matrix')
+                if args.native:
+                    response.write_text(json.dumps({'path': str(root / 'inputs/proteins.csv')}))
                 page.locator('[data-browse=matrix]').click()
-                page.get_by_role('button', name='Working folder', exact=True).click()
-                page.get_by_role('button', name='Open folder inputs', exact=True).click()
-                page.locator('#browse-search').fill('PROTEINS')
-                page.get_by_role('button', name='Choose file proteins.csv', exact=True).click()
+                if args.native:
+                    page.wait_for_function('!operationBusy')
+                    command = json.loads(calls.read_text().splitlines()[-1])
+                    assert '--directory' not in command
+                    assert '--title=Choose a protein quantification matrix' in command
+                    assert not page.locator('#picker').is_visible()
+                else:
+                    page.get_by_role('button', name='Working folder', exact=True).click()
+                    page.get_by_role('button', name='Open folder inputs', exact=True).click()
+                    page.locator('#browse-search').fill('PROTEINS')
+                    page.get_by_role('button', name='Choose file proteins.csv', exact=True).click()
                 page.wait_for_function("document.querySelectorAll('.sample').length === 6")
                 for sample in ['C1', 'C2', 'A1', 'A2', 'B1', 'B2']:
                     page.get_by_label('Condition for ' + sample, exact=True).select_option('Control' if sample.startswith('C') else 'Treatment')

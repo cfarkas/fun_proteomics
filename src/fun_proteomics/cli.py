@@ -12,7 +12,7 @@ import subprocess
 import sys
 from . import __version__
 from .project import digest, resolve_project
-from .continuation import (dia_settings, fresh_output, latest_legacy_nextflow, nextflow_session,
+from .continuation import (dia_input_snapshot, completed_dia_inputs_match, dia_settings, fresh_output, latest_legacy_nextflow, nextflow_session,
                            now, option_values, read_json, run_root, verify_delivery, verify_recorded_inputs, write_json)
 
 
@@ -224,7 +224,7 @@ def continue_run(args, project):
         return execute(command,project,environment(project,args,saved.get('r_library'),saved.get('rscript')),state_path,saved,args.print_command)
     verify_recorded_inputs(active_output, args.hash_raw)
     invalid = verify_delivery(active_output)
-    if not args.outdir and not args.service_matrix and not invalid and (not saved or saved.get('engine') != 'nextflow'):
+    if not args.outdir and not args.service_matrix and not invalid and (not saved or saved.get('engine') != 'nextflow' or (not args.independent_samples and completed_dia_inputs_match(saved, args.hash_raw))):
         if saved and saved.get('config') and digest(saved['config']) != saved.get('config_sha256'):
             invalid = ['study configuration changed']
         else:
@@ -293,6 +293,8 @@ def continue_run(args, project):
                     target.parent.mkdir(parents=True,exist_ok=True);path.rename(target)
         if saved.get('config'):
             saved['config_sha256'] = digest(saved['config'])
+            if option_values(command, '--dia_config') or option_values(command, '--dia-config'):
+                saved['dia_inputs'] = dia_input_snapshot(saved['config'], saved.get('project', project), args.hash_raw or (saved.get('dia_inputs') or {}).get('hash_raw', False))
         return execute(command, saved['launch_dir'],env,state_path,saved,args.print_command)
     legacy = latest_legacy_nextflow(folder)
     if legacy:
@@ -416,8 +418,11 @@ def main(argv=None):
             command=[nextflow_binary(project,args,env),'-log',str(controller/'nextflow.log'),'run',str(project/'main.nf'),
                      '--config' if args.config else '--dia_config',str(config),'--outdir',str(output),'-work-dir',str(controller/'work'),'-ansi-log','false']
             if args.validate_only:command.append('--validate_only')
-            return execute(command,controller/'nextflow',env,state,dict(engine='nextflow',project=str(project),outdir=str(output),
-                           config=str(config),config_sha256=digest(config)),args.print_command)
+            record = dict(engine='nextflow', project=str(project), outdir=str(output),
+                          config=str(config), config_sha256=digest(config))
+            if args.dia_config:
+                record['dia_inputs'] = dia_input_snapshot(config, project, args.hash_raw)
+            return execute(command, controller/'nextflow', env, state, record, args.print_command)
     except (ValueError, OSError, KeyError, json.JSONDecodeError) as error:
         print('fun_proteomics: '+str(error),file=sys.stderr);return 2
     except (KeyboardInterrupt, EOFError):

@@ -30,6 +30,37 @@ def choose_directory(data, workflow):
         return {'unavailable': True, 'message': str(error)}
 
 
+def choose_input_file(data, workflow):
+    study.imports(workflow)
+    from native_folders import FolderChooserUnavailable, choose_file
+    titles = {'matrix': 'Choose a protein quantification matrix', 'samples': 'Choose a sample table',
+              'fasta': 'Choose a FASTA database', 'service_matrix': 'Choose a service quantification file'}
+    try:
+        return choose_file(data.get('path') or str(Path.cwd()), titles.get(data.get('target'), 'Choose a file'))
+    except FolderChooserUnavailable as error:
+        return {'unavailable': True, 'message': str(error)}
+
+
+def infer_raw_input(args, config, workflow):
+    """Recognize a raw working folder from acquisition metadata, never filenames."""
+    if getattr(args, 'mode', None) or any(config.get(k) for k in ('matrix', 'samples', 'study_config', 'source_run')):
+        return
+    folder = config.get('raw_root') or str(Path.cwd())
+    try:
+        rows = study.scan(folder)
+    except (ValueError, OSError):
+        return
+    study.imports(workflow)
+    if all((Path(r['raw_path']) / 'analysis.baf').is_file() for r in rows):
+        mode = 'baf'
+    else:
+        from proteomics_detection import detect_proteomics
+        detected = detect_proteomics(rows)['detected']
+        mode = {'DIA-PASEF': 'dia', 'DDA-PASEF': 'dda'}.get(detected)
+    if mode:
+        config.update(mode=mode, raw_root=str(Path(folder).expanduser().resolve()))
+
+
 def browse_directory(data):
     """List a folder with navigation and filtering before pagination."""
     path = Path(data.get('path') or Path.cwd()).expanduser().resolve()
@@ -102,6 +133,8 @@ class Application:
             self.initial['project']=self.project
             config=Path(self.project)/'config/run.json'
             if config.is_file(): self.initial=study.load(config)
+        if not (self.project and (Path(self.project)/'config/run.json').is_file()):
+            infer_raw_input(args, self.initial, workflow)
         self.process=None;self.guard=threading.Lock()
 
     def load(self,project):
@@ -210,6 +243,8 @@ def make_server(app,port=0):
                 if not 0<size<=2_000_000:raise ValueError('Invalid request size')
                 data=json.loads(self.rfile.read(size))
                 if not isinstance(data,dict):raise ValueError('Expected an object')
+                if self.path=='/api/choose-file':
+                    return self.reply(choose_input_file(data, app.workflow))
                 if self.path=='/api/choose-folder':
                     return self.reply(choose_directory(data, app.workflow))
                 if self.path=='/api/browse':
@@ -236,10 +271,18 @@ def make_server(app,port=0):
 
 
 def serve(args,workflow):
+    if not getattr(args, 'no_browser', False):
+        from .setup_session import launch
+        return launch(args, workflow)
+    return serve_foreground(args, workflow)
+
+
+def serve_foreground(args,workflow,ready=None):
     app=Application(args,workflow);server=make_server(app,getattr(args,'port',0))
     url=f'http://127.0.0.1:{server.server_port}/#'+app.token
     print('fun_proteomics | Guided setup\n'+url,flush=True)
-    print('Keep this terminal open for setup. Launched analyses keep running if it closes.',flush=True)
+    if ready: ready(url, app, server)
+    print('Setup server ready. Analyses run independently of this server.',flush=True)
     if not getattr(args,'no_browser',False):webbrowser.open(url)
     try:server.serve_forever(poll_interval=.25)
     except KeyboardInterrupt:print('\nSetup closed. Reopen the same project to view progress or continue.')
