@@ -58,8 +58,8 @@ def fixture(folder):
     return inputs
 
 
-def launch(args,folder,env):
-    process=subprocess.Popen([args.python,'-m','fun_proteomics','setup','--project',str(folder/'study'),'--no-browser'],
+def launch(args,folder,env,project=True):
+    process=subprocess.Popen([args.python,'-m','fun_proteomics','setup',*(['--project',str(folder/'study')] if project else []),'--no-browser'],
                               cwd=folder,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,start_new_session=True)
     url=None;lines=[];deadline=time.monotonic()+30
     while time.monotonic()<deadline:
@@ -103,8 +103,8 @@ def browser_clip(browser,args,env,raw=False):
                 with sqlite3.connect(path/'analysis.tdf') as db:
                     db.execute('CREATE TABLE Frames (MsMsType INTEGER)');db.executemany('INSERT INTO Frames VALUES (?)',[(0,),(9,)])
             fasta=inputs/'targets.fasta';fasta.write_text('>sp|P00001|DEMO GN=GENE_A\nMPEPTIDEK\n')
-            page.locator('input[name=mode][value=dia]').check();page.locator('#raw_root').fill(str(acquisitions))
-            page.locator('#scan').click();page.wait_for_function('document.querySelectorAll(".sample").length===4')
+            page.locator('#mode').select_option('dia');page.locator('#raw_root').fill(str(acquisitions))
+            page.locator('#discover').click();page.wait_for_function('document.querySelectorAll(".sample").length===4')
             clip.say('Choose DIA-PASEF and scan your raw-data folder. This demo contains synthetic acquisition metadata only.',6)
             for i in range(4):drag_sample(page,'Sample'+str(i+1),'Control' if i<2 else 'Treatment');page.wait_for_timeout(400)
             clip.say('Drag acquisition cards into Control or Treatment. Each card also has a condition dropdown.',7)
@@ -135,7 +135,7 @@ def browser_clip(browser,args,env,raw=False):
             drag_sample(page,'C1','')
             clip.say('Unassigned cards are excluded. Drag the sample back into Control to include it in this analysis.',6)
             drag_sample(page,'C1','Control')
-            page.locator('#next').click();page.locator('#independent_samples').check();page.locator('#service_matrix').fill(str(inputs/'service.csv'))
+            page.locator('#next').click();page.locator('#independent_samples').check();page.get_by_text('Optional analysis settings',exact=True).click();page.locator('#service_matrix').fill(str(inputs/'service.csv'))
             clip.say('Keep all-versus-all comparisons and confirm independent samples. An optional service matrix adds detection gains and losses.',8)
             page.locator('#check').click();page.wait_for_function('document.getElementById("preview").textContent.includes("3 condition pairs")')
             page.locator('#preview').scroll_into_view_if_needed()
@@ -187,7 +187,7 @@ def baf_clip(browser,args,env):
         page.goto(url);page.wait_for_function('document.getElementById("project").value.length>0')
         clip=Clip(page,name,'BAF setup · synthetic acquisition placeholders · no spectrum search',args.output)
         clip.say('Choose your output folder. For raw BAF, first install the reader with fun_proteomics install --baf.',6)
-        page.locator('input[name=mode][value=baf]').check();page.locator('#raw_root').fill(str(raw));page.locator('#discover').click()
+        page.locator('#mode').select_option('baf');page.locator('#raw_root').fill(str(raw));page.locator('#discover').click()
         page.wait_for_function('document.querySelectorAll(".sample").length===16')
         field=page.get_by_role('textbox',name='Rename condition Treatment',exact=True);field.fill('TreatmentA');field.press('Tab')
         for condition in ('TreatmentB','TreatmentC'):

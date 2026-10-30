@@ -20,6 +20,53 @@ from .continuation import read_json, write_json
 from .setup_terminal import from_args
 
 
+def browse_directory(data):
+    """List a folder with navigation and filtering before pagination."""
+    path = Path(data.get('path') or Path.cwd()).expanduser().resolve()
+    # CLI output folders may not exist yet; start at an existing parent.
+    while not path.is_dir() and path != path.parent:
+        path = path.parent
+    if not path.is_dir():
+        raise ValueError('Directory does not exist')
+    query = str(data.get('query') or '').casefold()
+    directories_only = data.get('kind') == 'directory'
+    entries = []
+    for child in path.iterdir():
+        if child.name.startswith('.') or query not in child.name.casefold():
+            continue
+        directory = child.is_dir()
+        if directories_only and not directory:
+            continue
+        entries.append({'name': child.name, 'path': str(child), 'directory': directory})
+    entries.sort(key=lambda item: (not item['directory'], item['name'].casefold()))
+    locations = []
+    for name, folder in [('Working folder', Path.cwd()), ('Home', Path.home()),
+                         ('File system', Path(path.anchor)), ('Mounted drives', Path('/media')),
+                         ('Other drives', Path('/mnt')), ('Volumes', Path('/Volumes'))]:
+        if folder.is_dir() and str(folder) not in {item['path'] for item in locations}:
+            locations.append({'name': name, 'path': str(folder)})
+    return {'path': str(path), 'parent': str(path.parent), 'entries': entries[:500],
+            'truncated': len(entries) > 500, 'total': len(entries), 'locations': locations,
+            'breadcrumbs': [{'name': folder.name or folder.anchor, 'path': str(folder)}
+                            for folder in [*reversed(path.parents), path]]}
+
+
+def create_directory(data):
+    """Create one new folder without overwriting an existing file or folder."""
+    parent = Path(data['path']).expanduser().resolve()
+    name = data.get('name', '')
+    if not isinstance(name, str):
+        raise ValueError('Enter a folder name')
+    name = name.strip()
+    if not name or name in {'.', '..'} or any(c in name for c in ('/', chr(92), chr(0))):
+        raise ValueError('Enter a folder name, without a path')
+    if not parent.is_dir():
+        raise ValueError('Choose an existing parent folder')
+    target = parent / name
+    target.mkdir()
+    return {'path': str(target)}
+
+
 def worker_environment(workflow, args):
     """Keep installed packages after the standard library in child processes."""
     from .cli import environment
@@ -154,11 +201,9 @@ def make_server(app,port=0):
                 data=json.loads(self.rfile.read(size))
                 if not isinstance(data,dict):raise ValueError('Expected an object')
                 if self.path=='/api/browse':
-                    path=Path(data.get('path') or Path.cwd()).expanduser().resolve()
-                    if path.is_file():path=path.parent
-                    if not path.is_dir():raise ValueError('Directory does not exist')
-                    entries=sorted((p for p in path.iterdir() if not p.name.startswith('.')),key=lambda p:(not p.is_dir(),p.name.lower()))
-                    return self.reply({'path':str(path),'parent':str(path.parent),'entries':[{'name':p.name,'path':str(p),'directory':p.is_dir()} for p in entries[:500]],'truncated':len(entries)>500})
+                    return self.reply(browse_directory(data))
+                if self.path=='/api/mkdir':
+                    return self.reply(create_directory(data))
                 if self.path=='/api/discover':
                     from .assignments import discover
                     return self.reply({'board':discover(data['config'],app.workflow)})

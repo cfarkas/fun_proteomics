@@ -71,7 +71,7 @@ def is_study(path):
         return False
 
 
-def normalize(data):
+def normalize(data, *, require_project=True):
     if not isinstance(data, dict) or set(data)-FIELDS:
         raise ValueError('Unknown setup settings: '+str(sorted(set(data)-FIELDS) if isinstance(data,dict) else 'expected an object'))
     cfg = dict(fun_proteomics_project=FORMAT, mode='matrix', independent_samples=False, differential=True,
@@ -92,7 +92,7 @@ def normalize(data):
             value = str(cfg[field]).strip()
             if any(c in value for c in '\n\r\t'): raise ValueError('Paths cannot contain tabs or line breaks')
             cfg[field] = str(Path(value).expanduser().absolute() if field=='python' else Path(value).expanduser().resolve())
-    if not cfg.get('project'): raise ValueError('Choose a project folder')
+    if require_project and not cfg.get('project'): raise ValueError('Choose a project folder')
     for field in ('sheet', 'service_sheet', 'subject_column'):
         if cfg.get(field):
             if not isinstance(cfg[field],str) or not cfg[field].strip(): raise ValueError(field+' must be text')

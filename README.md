@@ -18,12 +18,12 @@ fun_proteomics setup
 
 The setup page opens in your browser. Keep the terminal open, then:
 
-1. Select **DIA-PASEF raw data** or **DDA-PASEF raw data**, matching your acquisition method.
-2. Use **Browse** to choose the parent folder containing your `.d` acquisitions, for example `/path/to/dir/raw`. Each `.d` acquisition is a directory; keep its contents together.
-3. Click **Discover samples** / **Scan .d folders**. Each detected acquisition appears as a sample card in **Unassigned**.
-4. **Drag the sample cards into their condition columns.** For example, drag `C1.d` and `C2.d` into **Control**, and `T1.d` and `T2.d` into **Treatment**. Add or rename conditions to match your experiment. Leave instrument blanks or excluded acquisitions unassigned.
-5. Select the matching search FASTA, review the experimental design and CPU/memory settings, and choose a new output folder such as `/path/to/dir/my-study`.
-6. Click **Save configuration and check**, then **Run / continue analysis**. Open **Results** or **Matrices · CSV & TSV** when the run finishes.
+1. In **Discover samples**, choose your data type, then click **Choose folder** (raw `.d` data) or **Choose file** (a protein matrix). Samples appear automatically. The top **Discover samples** button also opens the picker when no input is selected.
+2. **Assign samples to conditions.** Drag cards into **Control**, **Treatment**, or groups you add. Each card also has a condition dropdown. Leave excluded samples unassigned; raw-data discovery skips blanks.
+3. Click **Next: review & save**, then **Choose folder** for your results. Browse to a parent folder and use **New folder** to create a project by name. Choose the required FASTA and confirm the experimental design. Optional settings stay collapsed.
+4. Click **Save and continue**, then **Run / continue analysis**. Open **Results** or **Matrices · CSV & TSV** when the run finishes.
+
+No full paths need to be typed. The picker includes folder shortcuts, breadcrumbs and search. Use **Open saved project** at the top to browse to an earlier project.
 
 The example uses independent biological replicates. Conditions come from your assignments; filenames do not determine them. Keep the raw-data and output folders separate. The input guide below explains the FASTA and registered-tool requirements for each acquisition method.
 
@@ -64,15 +64,15 @@ Choose **one** of the following launch methods. **`--project` is your output fol
 
 ### A) Interactive settings
 
-Follow the embedded video above. Open the browser with `fun_proteomics setup`, then set your output folder in the page. Keep the terminal open. In the local browser:
+Follow the embedded video above. Open the browser with `fun_proteomics setup`, then choose your data. Keep the terminal open. In the local browser:
 
-1. Choose a matrix, raw-data folder or previous run, and review the output folder.
-2. Click **Discover samples**. Drag sample cards into condition columns. Add or rename conditions; move excluded samples to **Unassigned**. A sample table can prefill assignments.
-3. Choose independent samples or paired matrix/BAF comparisons with donor IDs. Keep all-versus-all comparisons; four conditions produce six pairs at each feature level.
-4. Click **Save configuration and check**, then **Run / continue analysis**.
+1. Choose a matrix, raw-data folder or previous run with its file/folder picker.
+2. Samples are discovered automatically when you select an input. Drag sample cards into condition columns. Add or rename conditions; move excluded samples to **Unassigned**. A sample table can prefill assignments.
+3. Click **Next: review & save**, choose or create the output folder, then confirm independent samples or paired matrix/BAF comparisons with donor IDs. Keep all-versus-all comparisons; four conditions produce six pairs at each feature level.
+4. Click **Save and continue**, then **Run / continue analysis**.
 5. Open **Results** or **Matrices · CSV & TSV** in the same page.
 
-Use the Browse buttons to select files on the computer running the analysis. [Input formats, technical injections and SSH browser access](docs/setup.md).
+Use **Choose file** and **Choose folder** to browse the computer running the analysis; no full paths need to be typed. [Input formats, technical injections and SSH browser access](docs/setup.md).
 
 ### B) Terminal questions
 

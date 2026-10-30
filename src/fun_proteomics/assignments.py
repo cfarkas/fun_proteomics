@@ -24,7 +24,7 @@ def source(cfg):
 
 def discover(cfg, workflow):
     from . import study
-    cfg = study.normalize(cfg)
+    cfg = study.normalize(cfg, require_project=False)
     if cfg['mode'] == 'continue' or cfg.get('study_config'):
         raise ValueError('An existing run or native configuration supplies its own assignments')
     study.imports(workflow)
@@ -74,7 +74,7 @@ def discover(cfg, workflow):
     else:
         if 'raw_path' not in frame:
             raise ValueError('Raw sample tables need raw_path')
-        base = Path(cfg.get('raw_root') or Path(cfg.get('samples', cfg['project'])).parent)
+        base = Path(cfg['raw_root']) if cfg.get('raw_root') else Path(cfg['samples']).parent if cfg.get('samples') else Path.cwd()
         frame['raw_path'] = [str((base / Path(p).expanduser()).resolve()) for p in frame.raw_path]
     if len(frame) > 2000:
         raise ValueError('Select at most 2000 samples')

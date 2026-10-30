@@ -44,7 +44,7 @@ def main():
                 page.get_by_label('Sample name for C1',exact=True).fill('RenamedControl')
                 page.locator('#sample-filter').fill('A1');assert page.locator('.sample:visible').count()==1;page.locator('#sample-filter').fill('')
                 if args.output:args.output.parent.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(args.output),full_page=True)
-                page.locator('#next').click();page.locator('#independent_samples').check();page.locator('#service_matrix').fill(str(inputs/'service.csv'))
+                page.locator('#next').click();page.locator('#independent_samples').check();page.get_by_text('Optional analysis settings',exact=True).click();page.locator('#service_matrix').fill(str(inputs/'service.csv'))
                 page.locator('#check').click();page.wait_for_function('document.getElementById("preview").textContent.includes("3 condition pairs")')
                 page.locator('#save').click();page.wait_for_function('!document.getElementById("run").disabled')
                 cfg=json.loads((root/'study/config/run.json').read_text())
@@ -65,9 +65,8 @@ def main():
                 # A new design in a new project must exclude unassigned cards from
                 # actual matrices and the provider benchmark, not just the preview.
                 page.locator('[data-step="1"]').click()
-                page.locator('#project').fill(str(root/'subset-study'))
                 for sample in ('B1','B2'):page.get_by_label('Condition for '+sample,exact=True).select_option('')
-                page.locator('#next').click();page.locator('#save').click()
+                page.locator('#next').click();page.locator('#project').fill(str(root/'subset-study'));page.locator('#save').click()
                 page.wait_for_function('document.getElementById("state").textContent==="saved"')
                 page.locator('#run').click();page.wait_for_function('document.getElementById("state").textContent==="completed"',timeout=120000)
                 subset=root/'subset-study/results/final_results'

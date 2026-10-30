@@ -58,7 +58,7 @@ def main():
             page.goto(url)
             page.wait_for_function('document.getElementById("project").value.length>0')
             clip = Clip(page, 'ubiquitin-quickstart', 'Interactive quick start · real published LFQ data', args.output)
-            page.locator('#project').fill(str(args.work_dir/'ubiquitin-study'))
+            page.locator('[data-step="2"]').click();page.locator('#project').fill(str(args.work_dir/'ubiquitin-study'));page.locator('[data-step="1"]').click()
             clip.say('Choose a new output folder. This walkthrough uses the downloaded 12-sample ubiquitin-affinity dataset.', 6)
             for field, filename, caption in [
                 ('matrix', 'proteins.csv', 'Browse to the extracted example folder and select proteins.csv. This is the measured protein quantity table.'),

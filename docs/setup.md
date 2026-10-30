@@ -20,11 +20,11 @@ Invoke interactive setup:
 fun_proteomics setup
 ```
 
-For raw data, choose the folder containing your `.d` acquisitions, click **Discover samples** / **Scan .d folders**, then drag the detected sample cards from **Unassigned** into their condition columns. Choose your **output/project folder** in the page. The video uses the [real quick-start download](quick_start.md); follow the same steps with your own files.
+Start with **Discover samples** at the top. Choose your data type, then use **Choose folder** for raw `.d` data or **Choose file** for a matrix. Selecting the input discovers samples automatically. Assign their conditions, then choose the output folder in **Review & save**. No full paths need to be typed. The video uses the [real quick-start download](quick_start.md); follow the same steps with your own files.
 
 Setup opens in your browser on a local, automatically selected port. Keep the launcher terminal open while configuring. Copy the entire URL, including its session code, when opening another browser. Analyses launched with **Run / continue** keep running if you close the setup server; reopen the same project to view progress.
 
-### 1. Choose data
+### 1. Discover and assign samples
 
 Choose one input type:
 
@@ -36,13 +36,13 @@ Choose one input type:
 | Raw BAF | Conventional DDA `.d` folders containing `analysis.baf`, a search FASTA, registered archives and biological sample assignments. [BAF guide](raw_baf.md). |
 | Existing run folder | A previous run root or its `final_results/` directory. Recorded settings and verified intermediates are reused. |
 
-The guided raw workflow covers global label-free analysis. For phosphoproteomics, immunopeptidomics, DDA+, database preparation or specialist options, use `fun_proteomics ui --advanced`; see the [advanced reference](advanced_reference.md). An existing native DIA/DDA JSON can also be selected under Advanced settings.
+The guided raw workflow covers global label-free analysis. For phosphoproteomics, immunopeptidomics, DDA+, database preparation or specialist options, use `fun_proteomics ui --advanced`; see the [advanced reference](advanced_reference.md). An existing native DIA/DDA JSON can also be selected under Optional analysis settings.
 
-**Output / project folder** selects where results are written. `setup --outdir /data/my-study` is an alias for `setup --project /data/my-study`. A live preview shows the matrix, report and continuation paths before saving. The project folder holds `config/`, `results/`, logs and launch state. Keep raw acquisitions in a separate directory tree. Save new analyses to a new or empty project. **Load saved project** reopens earlier settings.
+The folder picker provides **Working folder**, **Home**, mounted-drive shortcuts, clickable breadcrumbs, **Up one folder**, and a search box. Search filters the current folder before the display limit is applied. **New folder** creates a project folder using just a name; an existing folder is never overwritten. Direct path entry remains optional.
 
-### 2. Review samples and comparisons
+The top **Discover samples** button opens the picker if no input has been selected, or refreshes discovery for the selected input. An output folder is only required when reviewing and saving. Expand **Optional: import sample groups or choose an Excel sheet** to supply a sample table or worksheet name.
 
-Click **Discover samples** after selecting a matrix or raw-data folder. Assign samples to conditions using the interactive board:
+Assign samples to conditions using the interactive board:
 
 1. Detected acquisitions or matrix samples appear as cards in **Unassigned**. Imported sample tables prefill their conditions.
 2. Drag cards into **Control**, **Treatment**, or a condition you add. Edit the column heading to rename a condition. Use a card's dropdown as a keyboard/touch alternative.
@@ -91,7 +91,7 @@ P04637,TP53,118000,132000,255000,240000
 P60709,ACTB,475000,500000,485000,505000
 ```
 
-Raw sample tables additionally need `raw_path`; paths can be absolute or relative to the selected raw-data folder. Alternatively, **Scan .d folders** discovers acquisition cards for the same drag-and-drop board. No condition is inferred from a filename. Blank acquisitions are excluded from the scan. You can rename sample IDs; DDA identifiers must start with a letter and contain only letters, digits and underscores.
+Raw sample tables additionally need `raw_path`; paths can be absolute or relative to the selected raw-data folder. Alternatively, **Choose folder** discovers acquisition cards automatically for the same assignment board. No condition is inferred from a filename. Blank acquisitions are excluded from the scan. You can rename sample IDs; DDA identifiers must start with a letter and contain only letters, digits and underscores.
 
 **`samples.csv`** — raw PASEF sample-table version:
 
@@ -107,7 +107,7 @@ For BAF biological-sample grouping, use the [acquisition table in the complete B
 
 All-versus-all testing is the default. Three conditions produce three unique comparisons; four produce six. Confirm that each sample is from a different patient or independent biological replicate. Original replicate labels are retained in the normalized matrix sample sheet; unique replicate numbers are used for the independent design. For repeated donors in matrix imports or native BAF, select **Paired comparisons** and specify the donor column, or enter donor IDs on the sample cards. The model uses within-donor log2 differences; at least two complete pairs per feature are required. Aggregate technical injections before matrix import. In native BAF, assign technical injections the same biological sample ID; the workflow groups them before statistics. Other complex repeated-measures designs still need a tailored model.
 
-DIA and imported intensity tables use log2 positive quantities with limma-trend, no imputation, and no extra normalization by default. Median centering is optional for suitable unnormalized input. BH remains the default FDR method. Advanced settings offer `fdrtool_pvalue` on unchanged limma P values and `fdrtool_normal` as an empirical-null sensitivity analysis; [the FDR guide](fdr_methods.md) explains their distinct P-value columns and diagnostics. DDA uses count models. Native JSON imports retain their explicitly configured comparisons and design; they do not inherit the guided defaults.
+DIA and imported intensity tables use log2 positive quantities with limma-trend, no imputation, and no extra normalization by default. Median centering is optional for suitable unnormalized input. BH remains the default FDR method. Optional analysis settings offer `fdrtool_pvalue` on unchanged limma P values and `fdrtool_normal` as an empirical-null sensitivity analysis; [the FDR guide](fdr_methods.md) explains their distinct P-value columns and diagnostics. DDA uses count models. Native JSON imports retain their explicitly configured comparisons and design; they do not inherit the guided defaults.
 
 Supply the matching FASTA with `GN=` annotations when gene symbols are absent. Ambiguous gene assignments remain visible in the audit and are excluded from gene rollups. A service benchmark reports detection gains and losses; it is separate from differential abundance.
 
@@ -120,9 +120,15 @@ MPEPTIDEK
 MPEPTIDER
 ```
 
-### 3. Save and run
+### 2. Review and save
 
-**Check inputs** previews sample numbers, groups, comparisons and gene availability without saving. **Save configuration and check** saves `PROJECT/config/run.json` and the full assignment audit as `config/sample_assignments.csv` and `.tsv`. The audit includes Unassigned samples marked `included=false`; the analysis uses only assigned rows. Draft settings can be corrected before the first launch, with earlier versions retained in `config/backups/`. After launch, use a new project for a changed design. **Run / continue analysis** launches the same native Python or Nextflow code used from the terminal. Missing tools produce an actionable error in the progress log.
+Use **Next: review & save** to choose where results will be saved. Click **Choose folder**, browse to the desired parent, then use **New folder** for a new project. Select any required FASTA or registered archives with their **Choose file** buttons. Confirm independent samples or paired donors when comparing conditions. Service benchmarks, compute budgets and other optional settings are in **Optional analysis settings**.
+
+**Result locations** shows where matrices and reports will be written. `setup --outdir /data/my-study` remains an alias for `setup --project /data/my-study`. Keep raw acquisitions separate from the project folder. **Save and continue** checks inputs, saves settings and opens the run step. **Open saved project** at the top reopens earlier settings through the same picker.
+
+### 3. Run and find results
+
+**Check inputs** previews sample numbers, groups, comparisons and gene availability without saving. **Save and continue** saves `PROJECT/config/run.json` and the full assignment audit as `config/sample_assignments.csv` and `.tsv`. The audit includes Unassigned samples marked `included=false`; the analysis uses only assigned rows. Draft settings can be corrected before the first launch, with earlier versions retained in `config/backups/`. After launch, use a new project for a changed design. **Run / continue analysis** launches the same native Python or Nextflow code used from the terminal. Missing tools produce an actionable error in the progress log.
 
 **Stop analysis** requests a stop and preserves inputs and outputs. Use Run / continue after resolving the interruption. Changed saved inputs are rejected rather than silently reused; use a new project for a changed analysis.
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fun_proteomics"
-version = "0.10.0"
+version = "0.10.1"
 description = "Raw PASEF and BAF proteomics, verified continuation, differential abundance and service benchmarking"
 readme = "PACKAGE_README.md"
 requires-python = ">=3.11"

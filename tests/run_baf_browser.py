@@ -29,13 +29,13 @@ def main():
                 browser=p.chromium.launch(headless=True,**({'executable_path':args.browser_path} if args.browser_path else {}))
                 page=browser.new_page(viewport={'width':1440,'height':1150});errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
                 page.goto(url);page.wait_for_function('document.getElementById("project").value.length>0')
-                page.locator('input[name=mode][value=baf]').check();page.locator('#raw_root').fill(str(raw));page.locator('#discover').click()
+                page.locator('#mode').select_option('baf');page.locator('#raw_root').fill(str(raw));page.locator('#discover').click()
                 page.wait_for_selector('.sample');assert page.locator('.sample').count()==4
                 for name in ['D1_A_R1','D1_A_R2','D1_B_R1','D1_B_R2']:
                     page.get_by_label('Condition for '+name,exact=True).select_option('Control' if '_A_' in name else 'Treatment')
                     page.get_by_label('Biological sample for '+name,exact=True).fill(name.rsplit('_',1)[0])
                 page.locator('#next').click();page.locator('#paired_samples').check()
-                assert page.locator('#service_matrix').is_visible()
+                page.get_by_text('Optional analysis settings',exact=True).click();assert page.locator('#service_matrix').is_visible()
                 assert page.locator('#python').is_visible()
                 page.locator('[data-step="1"]').click()
                 for name in ['D1_A_R1','D1_A_R2','D1_B_R1','D1_B_R2']:page.get_by_label('Donor for '+name,exact=True).fill('D1')

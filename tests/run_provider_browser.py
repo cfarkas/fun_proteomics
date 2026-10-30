@@ -35,7 +35,7 @@ def main():
                 browser=p.chromium.launch(headless=True,**({'executable_path':args.browser_path} if args.browser_path else {}))
                 page=browser.new_page(viewport={'width':1440,'height':1150});errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
                 page.goto(url);page.wait_for_function('document.getElementById("project").value.length>0')
-                assert str(root/'study/results/final_results/matrices') in page.locator('#output-preview').inner_text()
+                assert str(root/'study/results/final_results/matrices') in page.locator('#output-preview').text_content()
                 page.locator('#matrix').fill(str(book));page.locator('#discover').click();page.wait_for_selector('.sample')
                 assert page.locator('.sample').count()==6
                 for name in names: page.get_by_label('Condition for '+name,exact=True).select_option('Control' if name.startswith('C') else 'Treatment')
